@@ -1,0 +1,22 @@
+-- ... [keep your variable declarations and getPartsInViewport function]
+
+while true do
+    task.wait(0.1) -- Slow it down a bit for performance
+    if not player.Character then continue end
+    local tool = player.Character:FindFirstChildOfClass("Tool")
+    local parts = getPartsInViewport(getgenv().Range or 15)
+
+    if tool and tool:FindFirstChild("Handle") then
+        for _, part in ipairs(parts) do
+            local parent = part.Parent
+            if parent and parent ~= player.Character then
+                local humanoid = parent:FindFirstChildWhichIsA("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    tool:Activate()
+                    firetouchinterest(tool.Handle, part, 0)
+                    firetouchinterest(tool.Handle, part, 1)
+                end
+            end
+        end
+    end
+end
