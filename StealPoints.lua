@@ -21,7 +21,7 @@ end
 -- Speed 2x lipat
 game:GetService("RunService").Stepped:Connect(function()
     if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
-        player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 32
+        player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 18
     end
 end)
 
