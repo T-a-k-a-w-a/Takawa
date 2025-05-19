@@ -76,7 +76,7 @@ minimizedPanel.MouseButton1Click:Connect(function()
     minimizedPanel.Visible = false
 end)
 
--- === Dragging (judul panel) ===
+-- === Dragging (judul panel, dengan batas layar) ===
 do
     local dragging, dragInput, dragStart, startPos
     local UIS = game:GetService("UserInputService")
@@ -99,9 +99,12 @@ do
     end)
     UIS.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
+            local screenX = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.X or 800
+            local screenY = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.Y or 600
             local delta = input.Position - dragStart
-            panel.Position = UDim2.new(startPos.X.Scale, math.clamp(startPos.X.Offset + delta.X, 0, math.max(0, workspace.CurrentCamera.ViewportSize.X - PANEL_W)),
-                                      startPos.Y.Scale, math.clamp(startPos.Y.Offset + delta.Y, 0, math.max(0, workspace.CurrentCamera.ViewportSize.Y - PANEL_H)))
+            local newX = math.clamp(startPos.X.Offset + delta.X, 0, screenX - PANEL_W)
+            local newY = math.clamp(startPos.Y.Offset + delta.Y, 0, screenY - PANEL_H)
+            panel.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
         end
     end)
 end
@@ -117,7 +120,6 @@ scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 scroll.ZIndex = 1
 scroll.ClipsDescendants = true
 
--- Prevent camera movement when dragging/scrolling panel
 scroll.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
         game:GetService("ContextActionService"):BindActionAtPriority("UGCSP_CameraBlock", function() return Enum.ContextActionResult.Sink end,
@@ -132,7 +134,7 @@ end)
 local function createLabel(text, order)
     local l = Instance.new("TextLabel", scroll)
     l.Size = UDim2.new(1, -16, 0, 22)
-    l.Position = UDim2.new(0, 8, 0, 12 + order*52)
+    l.Position = UDim2.new(0, 8, 0, 12 + order*60)
     l.BackgroundTransparency = 1
     l.Text = text
     l.TextColor3 = Color3.fromRGB(200,200,200)
@@ -146,7 +148,7 @@ end
 local function createToggle(text, order, val, cb)
     local t = Instance.new("TextButton", scroll)
     t.Size = UDim2.new(0, 110, 0, 28)
-    t.Position = UDim2.new(0, 180, 0, 10 + order*52)
+    t.Position = UDim2.new(0, 180, 0, 10 + order*60)
     t.BackgroundColor3 = val and Color3.fromRGB(80,180,80) or Color3.fromRGB(180,80,80)
     t.TextColor3 = Color3.fromRGB(255,255,255)
     t.Text = text..(val and " ON" or " OFF")
@@ -163,15 +165,15 @@ local function createToggle(text, order, val, cb)
     return t
 end
 
-local function createNumberBox(text, order, min, max, val, cb)
+local function createNumberBoxWithOk(text, order, min, max, val, cb)
     local frame = Instance.new("Frame", scroll)
-    frame.Size = UDim2.new(1, -16, 0, 28)
-    frame.Position = UDim2.new(0, 8, 0, 34 + order*52)
+    frame.Size = UDim2.new(1, -16, 0, 36)
+    frame.Position = UDim2.new(0, 8, 0, 34 + order*60)
     frame.BackgroundTransparency = 1
     frame.ZIndex = 2
 
     local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(0.55, 0, 1, 0)
+    label.Size = UDim2.new(0.43, 0, 1, 0)
     label.Position = UDim2.new(0, 0, 0, 0)
     label.BackgroundTransparency = 1
     label.Text = text..": "
@@ -182,8 +184,8 @@ local function createNumberBox(text, order, min, max, val, cb)
     label.ZIndex = 2
 
     local box = Instance.new("TextBox", frame)
-    box.Size = UDim2.new(0.45, -10, 1, 0)
-    box.Position = UDim2.new(0.55, 10, 0, 0)
+    box.Size = UDim2.new(0.32, -4, 1, 0)
+    box.Position = UDim2.new(0.43, 4, 0, 0)
     box.BackgroundColor3 = Color3.fromRGB(50,140,180)
     box.Text = tostring(val)
     box.TextColor3 = Color3.new(1,1,1)
@@ -193,16 +195,71 @@ local function createNumberBox(text, order, min, max, val, cb)
     box.ClearTextOnFocus = false
     box.TextXAlignment = Enum.TextXAlignment.Center
 
-    box.FocusLost:Connect(function(enter)
-        if enter then
-            local input = tonumber(box.Text)
-            if input and input >= min and input <= max then
-                box.Text = tostring(input)
-                cb(input)
-            else
-                box.Text = tostring(val)
-            end
+    local ok = Instance.new("TextButton", frame)
+    ok.Size = UDim2.new(0.23, 0, 1, 0)
+    ok.Position = UDim2.new(0.75, 6, 0, 0)
+    ok.BackgroundColor3 = Color3.fromRGB(120,180,80)
+    ok.Text = "OK"
+    ok.Font = Enum.Font.GothamBold
+    ok.TextColor3 = Color3.fromRGB(255,255,255)
+    ok.TextSize = 14
+    ok.ZIndex = 2
+
+    ok.MouseButton1Click:Connect(function()
+        local input = tonumber(box.Text)
+        if input and input >= min and input <= max then
+            box.Text = tostring(input)
+            cb(input)
+        else
+            box.Text = tostring(val)
         end
+    end)
+    return frame
+end
+
+local function createTextBoxWithOk(text, order, val, cb)
+    local frame = Instance.new("Frame", scroll)
+    frame.Size = UDim2.new(1, -16, 0, 36)
+    frame.Position = UDim2.new(0, 8, 0, 34 + order*60)
+    frame.BackgroundTransparency = 1
+    frame.ZIndex = 2
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(0.43, 0, 1, 0)
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text..": "
+    label.TextColor3 = Color3.fromRGB(200,200,200)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.ZIndex = 2
+
+    local box = Instance.new("TextBox", frame)
+    box.Size = UDim2.new(0.32, -4, 1, 0)
+    box.Position = UDim2.new(0.43, 4, 0, 0)
+    box.BackgroundColor3 = Color3.fromRGB(60,60,100)
+    box.TextColor3 = Color3.fromRGB(255,255,255)
+    box.Text = val
+    box.PlaceholderText = "Aesthetic name"
+    box.TextSize = 14
+    box.Font = Enum.Font.Gotham
+    box.ZIndex = 2
+    box.ClearTextOnFocus = false
+    box.TextXAlignment = Enum.TextXAlignment.Center
+
+    local ok = Instance.new("TextButton", frame)
+    ok.Size = UDim2.new(0.23, 0, 1, 0)
+    ok.Position = UDim2.new(0.75, 6, 0, 0)
+    ok.BackgroundColor3 = Color3.fromRGB(120,180,80)
+    ok.Text = "OK"
+    ok.Font = Enum.Font.GothamBold
+    ok.TextColor3 = Color3.fromRGB(255,255,255)
+    ok.TextSize = 14
+    ok.ZIndex = 2
+
+    ok.MouseButton1Click:Connect(function()
+        cb(box.Text)
     end)
     return frame
 end
@@ -212,7 +269,7 @@ local order = 0
 createLabel("Speed Walk", order)
 createToggle("Speed", order, config.speedOn, function(v) config.speedOn = v end)
 order = order + 1
-createNumberBox("Speed", order, 8, 50, config.walkSpeed, function(v) config.walkSpeed = v end)
+createNumberBoxWithOk("Speed", order, 8, 50, config.walkSpeed, function(v) config.walkSpeed = v end)
 order = order + 1
 
 createLabel("Regen HP", order)
@@ -222,7 +279,7 @@ order = order + 1
 createLabel("Instant Kill", order)
 createToggle("InstKill", order, config.instantKillOn, function(v) config.instantKillOn = v end)
 order = order + 1
-createNumberBox("Range", order, 1, 15, config.hitboxRange, function(v) config.hitboxRange = v end)
+createNumberBoxWithOk("Range", order, 1, 15, config.hitboxRange, function(v) config.hitboxRange = v end)
 order = order + 1
 
 createLabel("Menyerang Segala Arah: Selalu Aktif", order)
@@ -232,26 +289,13 @@ createLabel("Anti AFK", order)
 createToggle("AntiAFK", order, config.antiAfkOn, function(v) config.antiAfkOn = v end)
 order = order + 1
 
-createLabel("Fake Name (visual):", order)
-local fakeNameBox = Instance.new("TextBox", scroll)
-fakeNameBox.Size = UDim2.new(0, 150, 0, 26)
-fakeNameBox.Position = UDim2.new(0, 150, 0, 10 + order*52)
-fakeNameBox.BackgroundColor3 = Color3.fromRGB(60,60,100)
-fakeNameBox.TextColor3 = Color3.fromRGB(255,255,255)
-fakeNameBox.Text = config.fakeName
-fakeNameBox.PlaceholderText = "Aesthetic name"
-fakeNameBox.TextSize = 14
-fakeNameBox.Font = Enum.Font.Gotham
-fakeNameBox.ZIndex = 2
-fakeNameBox.FocusLost:Connect(function()
-    config.fakeName = fakeNameBox.Text
-end)
+createTextBoxWithOk("Fake Name (visual)", order, config.fakeName, function(v) config.fakeName = v end)
 order = order + 1
 
 createLabel("Game Info:", order)
 local infoLabel = Instance.new("TextLabel", scroll)
 infoLabel.Size = UDim2.new(1, -16, 0, 34)
-infoLabel.Position = UDim2.new(0, 8, 0, 10 + order*52)
+infoLabel.Position = UDim2.new(0, 8, 0, 10 + order*60)
 infoLabel.BackgroundTransparency = 1
 infoLabel.TextColor3 = Color3.fromRGB(180,220,255)
 infoLabel.Font = Enum.Font.Gotham
@@ -301,23 +345,41 @@ spawn(function()
     end
 end)
 
--- === Speed & Regen ===
-RunService.Stepped:Connect(function()
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChildOfClass("Humanoid") then
-        local h = char:FindFirstChildOfClass("Humanoid")
-        if config.speedOn then
-            h.WalkSpeed = config.walkSpeed
-        else
-            h.WalkSpeed = 16
-        end
-        if config.regenOn and h.Health < 99 then
-            h.Health = 99
+-- === Speed & Regen (regen seperti script awal: 1 detik, HP ke 99 jika kurang) ===
+spawn(function()
+    while true do
+        wait(1)
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChildOfClass("Humanoid") then
+            local h = char:FindFirstChildOfClass("Humanoid")
+            if config.speedOn then
+                h.WalkSpeed = config.walkSpeed
+            else
+                h.WalkSpeed = 16
+            end
+            if config.regenOn and h.Health < 99 then
+                h.Health = 99
+            end
         end
     end
 end)
 
--- === Auto Attack (instant kill, segala arah) ===
+-- === SAFE KILL: Tidak serang diri sendiri, tidak serang yang sudah mati, tidak serang di safe zone ===
+local function isSafeZone(target)
+    -- Cek tag, attribute, atau folder "SafeZone"
+    if target:FindFirstChild("SafeZone") then return true end
+    if target:FindFirstChild("safezone") then return true end
+    if target:FindFirstChild("IsInSafeZone") then return target.IsInSafeZone.Value end
+    -- Bisa tambahkan custom pengecekan sesuai game
+    return false
+end
+
+local function isEnemy(target)
+    if target == LocalPlayer.Character then return false end
+    if Players:GetPlayerFromCharacter(target) and Players:GetPlayerFromCharacter(target) == LocalPlayer then return false end
+    return true
+end
+
 spawn(function()
     while true do
         wait(0.05)
@@ -328,9 +390,9 @@ spawn(function()
             for _, part in ipairs(workspace:GetDescendants()) do
                 if part:IsA("BasePart") and LocalPlayer:DistanceFromCharacter(part.Position) <= range then
                     local parent = part.Parent
-                    if parent and parent ~= LocalPlayer.Character then
+                    if parent and isEnemy(parent) then
                         local humanoid = parent:FindFirstChildWhichIsA("Humanoid")
-                        if humanoid and humanoid.Health > 0 then
+                        if humanoid and humanoid.Health > 0 and not isSafeZone(parent) then
                             tool:Activate()
                             firetouchinterest(tool.Handle, part, 0)
                             firetouchinterest(tool.Handle, part, 1)
