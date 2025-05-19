@@ -1,30 +1,49 @@
 local players = game:GetService("Players")
 local player = players.LocalPlayer
-local camera = workspace.CurrentCamera
-local Range = math.min(getgenv().Range or 15, 15) -- Maksimal 15 agar aman anti-cheat
+local Range = math.min(getgenv().Range or 15, 15)
+local regenRate = 50 -- Jumlah HP regen per detik (bisa diubah)
+local regenInterval = 1 -- Detik (jangan kurang dari 0.2 untuk aman)
 
-local function getPartsInViewport(maxDistance)
-    local partsInViewport = {}
+-- Auto Attack segala arah
+function getNearbyParts(maxDistance)
+    local parts = {}
     for _, part in ipairs(workspace:GetDescendants()) do
         if part:IsA("BasePart") then
             local distance = player:DistanceFromCharacter(part.Position)
             if distance <= maxDistance then
-                local _, isVisible = camera:WorldToViewportPoint(part.Position)
-                if isVisible then
-                    table.insert(partsInViewport, part)
-                end
+                table.insert(parts, part)
             end
         end
     end
-    return partsInViewport
+    return parts
 end
 
+-- Speed 2x lipat
+game:GetService("RunService").Stepped:Connect(function()
+    if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+        player.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 32
+    end
+end)
+
+-- Regen Cepat
+spawn(function()
+    while true do
+        wait(regenInterval)
+        if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+            local h = player.Character:FindFirstChildOfClass("Humanoid")
+            if h.Health < 100 then
+                h.Health = math.min(100, h.Health + regenRate)
+            end
+        end
+    end
+end)
+
+-- Auto Attack
 while true do
-    wait(0.05) -- 2x lebih cepat dari default wait() (umumnya 0.1 - 0.2)
+    wait(0.05)
     if not player.Character then continue end
     local tool = player.Character:FindFirstChildOfClass("Tool")
-    local parts = getPartsInViewport(Range)
-
+    local parts = getNearbyParts(Range)
     if tool and tool:FindFirstChild("Handle") then
         for _, part in ipairs(parts) do
             local parent = part.Parent
