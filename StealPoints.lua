@@ -1,15 +1,7 @@
---[[ 
-  Roblox GUI Panel Script
-  By: GitHub Copilot Chat Assistant
-  Fitur: Panel kanan atas, minimize/restore, ON/OFF, slider & info
---]]
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
 
--- ==== VARIABEL FITUR ====
 local config = {
     speedOn = true,
     walkSpeed = 18,
@@ -17,45 +9,56 @@ local config = {
     instantKillOn = true,
     hitboxRange = 15,
     antiAfkOn = true,
-    fakeNameOn = true,
     fakeName = ""
 }
 
--- ==== PANEL GUI MAIN ====
+-- === GUI Setup ===
 local CoreGui = game:GetService("CoreGui")
+if CoreGui:FindFirstChild("UGCSP_PANEL") then CoreGui:FindFirstChild("UGCSP_PANEL"):Destroy() end
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "TakwPanel"
+ScreenGui.Name = "UGCSP_PANEL"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = false
+
+-- Panel size for mobile (compact)
+local PANEL_W, PANEL_H = 320, 440
 
 local panel = Instance.new("Frame", ScreenGui)
-panel.Size = UDim2.new(0, 340, 0, 330)
-panel.Position = UDim2.new(1, -350, 0, 40)
-panel.BackgroundColor3 = Color3.fromRGB(30,30,30)
+panel.Size = UDim2.new(0, PANEL_W, 0, PANEL_H)
+panel.Position = UDim2.new(1, -PANEL_W-10, 0, 30)
+panel.BackgroundColor3 = Color3.fromRGB(30,30,40)
 panel.BorderSizePixel = 0
 panel.Visible = true
+panel.Active = true
+panel.Draggable = false
 
+-- Title bar (drag handle)
 local title = Instance.new("TextLabel", panel)
 title.Size = UDim2.new(1, 0, 0, 38)
 title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundColor3 = Color3.fromRGB(50,50,70)
-title.Text = "Takw Panel Script"
+title.BackgroundColor3 = Color3.fromRGB(60,80,120)
+title.Text = "UGCSP Script by Takawa"
 title.TextColor3 = Color3.fromRGB(255,255,255)
-title.TextSize = 22
+title.TextSize = 20
 title.Font = Enum.Font.GothamBold
+title.Active = true
 
+-- Minimize button
 local minimize = Instance.new("TextButton", panel)
-minimize.Size = UDim2.new(0, 36, 0, 36)
+minimize.Size = UDim2.new(0, 34, 0, 34)
 minimize.Position = UDim2.new(1, -38, 0, 2)
-minimize.BackgroundColor3 = Color3.fromRGB(70,70,70)
+minimize.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
 minimize.Text = "-"
-minimize.TextSize = 24
+minimize.TextSize = 22
 minimize.TextColor3 = Color3.new(1,1,1)
 minimize.Font = Enum.Font.GothamBold
+minimize.ZIndex = 2
 
+-- Minimized panel button
 local minimizedPanel = Instance.new("TextButton", ScreenGui)
-minimizedPanel.Size = UDim2.new(0, 40, 0, 40)
-minimizedPanel.Position = UDim2.new(1, -60, 0, 40)
-minimizedPanel.BackgroundColor3 = Color3.fromRGB(50,50,50)
+minimizedPanel.Size = UDim2.new(0, 38, 0, 38)
+minimizedPanel.Position = UDim2.new(1, -48, 0, 30)
+minimizedPanel.BackgroundColor3 = Color3.fromRGB(80,80,90)
 minimizedPanel.Text = "☰"
 minimizedPanel.TextColor3 = Color3.new(1,1,1)
 minimizedPanel.TextSize = 28
@@ -70,136 +73,207 @@ minimizedPanel.MouseButton1Click:Connect(function()
     minimizedPanel.Visible = false
 end)
 
--- ==== FUNGSI UI UTILITY ====
-local function createLabel(text, y)
-    local l = Instance.new("TextLabel", panel)
-    l.Size = UDim2.new(1, -24, 0, 22)
-    l.Position = UDim2.new(0, 12, 0, y)
+-- === Dragging (judul panel) ===
+do
+    local dragging, dragInput, dragStart, startPos
+    local UIS = game:GetService("UserInputService")
+    title.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = panel.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    title.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            panel.Position = UDim2.new(startPos.X.Scale, math.clamp(startPos.X.Offset + delta.X, 0, game:GetService("Workspace").CurrentCamera.ViewportSize.X - PANEL_W),
+                                      startPos.Y.Scale, math.clamp(startPos.Y.Offset + delta.Y, 0, game:GetService("Workspace").CurrentCamera.ViewportSize.Y - PANEL_H))
+        end
+    end)
+end
+
+-- === SCROLLING CONTAINER ===
+local scroll = Instance.new("ScrollingFrame", panel)
+scroll.Position = UDim2.new(0, 0, 0, 38)
+scroll.Size = UDim2.new(1, 0, 1, -38)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 700)
+scroll.ScrollBarThickness = 6
+scroll.BackgroundTransparency = 1
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scroll.ZIndex = 1
+scroll.ClipsDescendants = true
+
+-- Prevent camera movement when dragging/scrolling panel
+scroll.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        game:GetService("ContextActionService"):BindActionAtPriority("UGCSP_CameraBlock", function() return Enum.ContextActionResult.Sink end,
+            false, Enum.ContextActionPriority.High.Value, Enum.UserInputType.Touch, Enum.UserInputType.MouseButton1)
+    end
+end)
+scroll.InputEnded:Connect(function(input)
+    game:GetService("ContextActionService"):UnbindAction("UGCSP_CameraBlock")
+end)
+
+-- === UI Utility Functions ===
+local function createLabel(text, order)
+    local l = Instance.new("TextLabel", scroll)
+    l.Size = UDim2.new(1, -16, 0, 22)
+    l.Position = UDim2.new(0, 8, 0, 12 + order*52)
     l.BackgroundTransparency = 1
     l.Text = text
     l.TextColor3 = Color3.fromRGB(200,200,200)
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.Font = Enum.Font.Gotham
     l.TextSize = 16
+    l.ZIndex = 2
     return l
 end
 
-local function createToggle(text, y, state, callback)
-    local t = Instance.new("TextButton", panel)
-    t.Size = UDim2.new(0, 120, 0, 26)
-    t.Position = UDim2.new(0, 200, 0, y)
-    t.BackgroundColor3 = state and Color3.fromRGB(60,180,60) or Color3.fromRGB(180,60,60)
+local function createToggle(text, order, val, cb)
+    local t = Instance.new("TextButton", scroll)
+    t.Size = UDim2.new(0, 110, 0, 28)
+    t.Position = UDim2.new(0, 180, 0, 10 + order*52)
+    t.BackgroundColor3 = val and Color3.fromRGB(80,180,80) or Color3.fromRGB(180,80,80)
     t.TextColor3 = Color3.fromRGB(255,255,255)
-    t.Text = text .. (state and " ON" or " OFF")
+    t.Text = text..(val and " ON" or " OFF")
     t.TextSize = 15
     t.Font = Enum.Font.GothamSemibold
     t.AutoButtonColor = true
+    t.ZIndex = 2
     t.MouseButton1Click:Connect(function()
-        state = not state
-        t.Text = text .. (state and " ON" or " OFF")
-        t.BackgroundColor3 = state and Color3.fromRGB(60,180,60) or Color3.fromRGB(180,60,60)
-        callback(state)
+        val = not val
+        t.Text = text..(val and " ON" or " OFF")
+        t.BackgroundColor3 = val and Color3.fromRGB(80,180,80) or Color3.fromRGB(180,80,80)
+        cb(val)
     end)
     return t
 end
 
-local function createSlider(text, y, min, max, val, callback)
-    local frame = Instance.new("Frame", panel)
-    frame.Size = UDim2.new(1, -24, 0, 32)
-    frame.Position = UDim2.new(0, 12, 0, y)
+local function createNumberBox(text, order, min, max, val, cb)
+    local frame = Instance.new("Frame", scroll)
+    frame.Size = UDim2.new(1, -16, 0, 28)
+    frame.Position = UDim2.new(0, 8, 0, 34 + order*52)
     frame.BackgroundTransparency = 1
+    frame.ZIndex = 2
 
     local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(0.5, 0, 1, 0)
+    label.Size = UDim2.new(0.55, 0, 1, 0)
     label.Position = UDim2.new(0, 0, 0, 0)
     label.BackgroundTransparency = 1
-    label.Text = text..": "..val
+    label.Text = text..": "
     label.TextColor3 = Color3.fromRGB(200,200,200)
     label.Font = Enum.Font.Gotham
-    label.TextSize = 15
+    label.TextSize = 14
     label.TextXAlignment = Enum.TextXAlignment.Left
+    label.ZIndex = 2
 
-    local slider = Instance.new("TextButton", frame)
-    slider.Size = UDim2.new(0.5, -10, 0, 24)
-    slider.Position = UDim2.new(0.5, 10, 0, 4)
-    slider.BackgroundColor3 = Color3.fromRGB(40,120,160)
-    slider.Text = tostring(val)
-    slider.TextColor3 = Color3.new(1,1,1)
-    slider.Font = Enum.Font.Gotham
-    slider.TextSize = 15
+    local box = Instance.new("TextBox", frame)
+    box.Size = UDim2.new(0.45, -10, 1, 0)
+    box.Position = UDim2.new(0.55, 10, 0, 0)
+    box.BackgroundColor3 = Color3.fromRGB(50,140,180)
+    box.Text = tostring(val)
+    box.TextColor3 = Color3.new(1,1,1)
+    box.Font = Enum.Font.Gotham
+    box.TextSize = 14
+    box.ZIndex = 2
+    box.ClearTextOnFocus = false
+    box.TextXAlignment = Enum.TextXAlignment.Center
 
-    slider.MouseButton1Click:Connect(function()
-        local input = tonumber(game:GetService("StarterGui"):PromptInput("Masukkan nilai "..text.." ("..min.."-"..max..")", slider.Text))
-        if input and input >= min and input <= max then
-            slider.Text = tostring(input)
-            label.Text = text..": "..input
-            callback(input)
+    box.FocusLost:Connect(function(enter)
+        if enter then
+            local input = tonumber(box.Text)
+            if input and input >= min and input <= max then
+                box.Text = tostring(input)
+                cb(input)
+            else
+                box.Text = tostring(val)
+            end
         end
     end)
     return frame
 end
 
--- ==== UI & FITUR ====
-local ypos = 46
-createLabel("Speed Walk", ypos)
-local speedToggle = createToggle("Speed", ypos, config.speedOn, function(state) config.speedOn = state end)
-local speedSlider = createSlider("Speed", ypos+26, 8, 50, config.walkSpeed, function(val) config.walkSpeed = val end)
-ypos = ypos + 58
+-- === Panel Content ===
+local order = 0
+createLabel("Speed Walk", order)
+createToggle("Speed", order, config.speedOn, function(v) config.speedOn = v end)
+order = order + 1
+createNumberBox("Speed", order, 8, 50, config.walkSpeed, function(v) config.walkSpeed = v end)
+order = order + 1
 
-createLabel("Regen HP", ypos)
-local regenToggle = createToggle("Regen", ypos, config.regenOn, function(state) config.regenOn = state end)
-ypos = ypos + 32
+createLabel("Regen HP", order)
+createToggle("Regen", order, config.regenOn, function(v) config.regenOn = v end)
+order = order + 1
 
-createLabel("Instant Kill", ypos)
-local instantKillToggle = createToggle("InstKill", ypos, config.instantKillOn, function(state) config.instantKillOn = state end)
-local hitboxSlider = createSlider("Range", ypos+26, 1, 15, config.hitboxRange, function(val) config.hitboxRange = val end)
-ypos = ypos + 58
+createLabel("Instant Kill", order)
+createToggle("InstKill", order, config.instantKillOn, function(v) config.instantKillOn = v end)
+order = order + 1
+createNumberBox("Range", order, 1, 15, config.hitboxRange, function(v) config.hitboxRange = v end)
+order = order + 1
 
-createLabel("Menyerang Segala Arah: Selalu Aktif", ypos)
-ypos = ypos + 28
+createLabel("Menyerang Segala Arah: Selalu Aktif", order)
+order = order + 1
 
-createLabel("Anti AFK", ypos)
-local afkToggle = createToggle("AntiAFK", ypos, config.antiAfkOn, function(state) config.antiAfkOn = state end)
-ypos = ypos + 32
+createLabel("Anti AFK", order)
+createToggle("AntiAFK", order, config.antiAfkOn, function(v) config.antiAfkOn = v end)
+order = order + 1
 
-createLabel("Protect Pads (Fake Name):", ypos)
-local fakeNameBox = Instance.new("TextBox", panel)
-fakeNameBox.Size = UDim2.new(0, 120, 0, 26)
-fakeNameBox.Position = UDim2.new(0, 200, 0, ypos)
+createLabel("Fake Name (visual):", order)
+local fakeNameBox = Instance.new("TextBox", scroll)
+fakeNameBox.Size = UDim2.new(0, 150, 0, 26)
+fakeNameBox.Position = UDim2.new(0, 150, 0, 10 + order*52)
 fakeNameBox.BackgroundColor3 = Color3.fromRGB(60,60,100)
 fakeNameBox.TextColor3 = Color3.fromRGB(255,255,255)
 fakeNameBox.Text = config.fakeName
-fakeNameBox.PlaceholderText = "isi nama aesthetic"
+fakeNameBox.PlaceholderText = "Aesthetic name"
 fakeNameBox.TextSize = 14
 fakeNameBox.Font = Enum.Font.Gotham
+fakeNameBox.ZIndex = 2
 fakeNameBox.FocusLost:Connect(function()
     config.fakeName = fakeNameBox.Text
 end)
-ypos = ypos + 32
+order = order + 1
 
-createLabel("Game Info:", ypos)
-local infoLabel = Instance.new("TextLabel", panel)
-infoLabel.Size = UDim2.new(1, -24, 0, 32)
-infoLabel.Position = UDim2.new(0, 12, 0, ypos + 20)
+createLabel("Game Info:", order)
+local infoLabel = Instance.new("TextLabel", scroll)
+infoLabel.Size = UDim2.new(1, -16, 0, 34)
+infoLabel.Position = UDim2.new(0, 8, 0, 10 + order*52)
 infoLabel.BackgroundTransparency = 1
 infoLabel.TextColor3 = Color3.fromRGB(180,220,255)
 infoLabel.Font = Enum.Font.Gotham
-infoLabel.TextSize = 14
+infoLabel.TextSize = 13
 infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+infoLabel.TextYAlignment = Enum.TextYAlignment.Top
 infoLabel.Text = ""
+infoLabel.ZIndex = 2
 
--- ==== UPDATE INFO GAME ====
+-- === Update Game Info ===
 spawn(function()
     while true do
         wait(1)
         local placeId = tostring(game.PlaceId)
         local gameId = tostring(game.GameId)
-        infoLabel.Text = "Game: "..game:GetService("MarketplaceService"):GetProductInfo(placeId).Name
-            .."\nPlaceId: "..placeId.." | GameId: "..gameId
+        local name = ""
+        pcall(function()
+            name = game:GetService("MarketplaceService"):GetProductInfo(placeId).Name
+        end)
+        infoLabel.Text = "Game: "..(name ~= "" and name or "<tidak terdeteksi>")..
+            "\nPlaceId: "..placeId.." | GameId: "..gameId
     end
 end)
 
--- ==== ANTI AFK ====
+-- === Anti AFK ===
 spawn(function()
     while true do
         wait(10)
@@ -212,11 +286,11 @@ spawn(function()
     end
 end)
 
--- ==== PROTECT FAKE NAME (VISUAL ONLY) ====
+-- === Fake Name (visual only) ===
 spawn(function()
     while true do
         wait(2)
-        if config.fakeNameOn and config.fakeName ~= "" then
+        if config.fakeName ~= "" then
             pcall(function()
                 LocalPlayer.DisplayName = config.fakeName
             end)
@@ -224,7 +298,7 @@ spawn(function()
     end
 end)
 
--- ==== SPEED & REGEN ====
+-- === Speed & Regen ===
 RunService.Stepped:Connect(function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChildOfClass("Humanoid") then
@@ -240,60 +314,10 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ==== AUTO ATTACK LOOP ====
+-- === Auto Attack (instant kill, segala arah) ===
 spawn(function()
     while true do
         wait(0.05)
         if not LocalPlayer.Character then continue end
         local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        local range = config.hitboxRange
-        if tool and tool:FindFirstChild("Handle") and config.instantKillOn then
-            for _, part in ipairs(workspace:GetDescendants()) do
-                if part:IsA("BasePart") and LocalPlayer:DistanceFromCharacter(part.Position) <= range then
-                    local parent = part.Parent
-                    if parent and parent ~= LocalPlayer.Character then
-                        local humanoid = parent:FindFirstChildWhichIsA("Humanoid")
-                        if humanoid and humanoid.Health > 0 then
-                            tool:Activate()
-                            firetouchinterest(tool.Handle, part, 0)
-                            firetouchinterest(tool.Handle, part, 1)
-                            humanoid.Health = 0
-                        end
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- ==== DRAGGABLE PANEL ====
-do
-    local dragToggle, dragInput, dragStart, startPos
-    local function updateInput(input)
-        local delta = input.Position - dragStart
-        panel.Position = UDim2.new(panel.Position.X.Scale, panel.Position.X.Offset + delta.X,
-                                  panel.Position.Y.Scale, panel.Position.Y.Offset + delta.Y)
-    end
-    panel.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragToggle = true
-            dragStart = input.Position
-            startPos = panel.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragToggle = false
-                end
-            end)
-        end
-    end)
-    panel.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
-        end
-    end)
-    game:GetService("UserInputService").InputChanged:Connect(function(input)
-        if input == dragInput and dragToggle then
-            updateInput(input)
-        end
-    end)
-end
+        local range =
