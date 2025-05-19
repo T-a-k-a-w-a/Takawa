@@ -2,6 +2,11 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
+-- Destroy previous panel if exists
+for _,v in ipairs(LocalPlayer.PlayerGui:GetChildren()) do
+    if v.Name == "UGCSP_PANEL" then v:Destroy() end
+end
+
 local config = {
     speedOn = true,
     walkSpeed = 18,
@@ -13,14 +18,12 @@ local config = {
 }
 
 -- === GUI Setup ===
-local CoreGui = game:GetService("CoreGui")
-if CoreGui:FindFirstChild("UGCSP_PANEL") then CoreGui:FindFirstChild("UGCSP_PANEL"):Destroy() end
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
+local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UGCSP_PANEL"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Panel size for mobile (compact)
 local PANEL_W, PANEL_H = 320, 440
 
 local panel = Instance.new("Frame", ScreenGui)
@@ -28,7 +31,7 @@ panel.Size = UDim2.new(0, PANEL_W, 0, PANEL_H)
 panel.Position = UDim2.new(1, -PANEL_W-10, 0, 30)
 panel.BackgroundColor3 = Color3.fromRGB(30,30,40)
 panel.BorderSizePixel = 0
-panel.Visible = true
+panel.Visible = false -- Start minimized
 panel.Active = true
 panel.Draggable = false
 
@@ -43,7 +46,7 @@ title.TextSize = 20
 title.Font = Enum.Font.GothamBold
 title.Active = true
 
--- Minimize button
+-- Minimize button (on panel)
 local minimize = Instance.new("TextButton", panel)
 minimize.Size = UDim2.new(0, 34, 0, 34)
 minimize.Position = UDim2.new(1, -38, 0, 2)
@@ -54,7 +57,7 @@ minimize.TextColor3 = Color3.new(1,1,1)
 minimize.Font = Enum.Font.GothamBold
 minimize.ZIndex = 2
 
--- Minimized panel button
+-- Minimized panel button (always visible, top right)
 local minimizedPanel = Instance.new("TextButton", ScreenGui)
 minimizedPanel.Size = UDim2.new(0, 38, 0, 38)
 minimizedPanel.Position = UDim2.new(1, -48, 0, 30)
@@ -62,7 +65,7 @@ minimizedPanel.BackgroundColor3 = Color3.fromRGB(80,80,90)
 minimizedPanel.Text = "☰"
 minimizedPanel.TextColor3 = Color3.new(1,1,1)
 minimizedPanel.TextSize = 28
-minimizedPanel.Visible = false
+minimizedPanel.Visible = true
 
 minimize.MouseButton1Click:Connect(function()
     panel.Visible = false
@@ -97,8 +100,8 @@ do
     UIS.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
-            panel.Position = UDim2.new(startPos.X.Scale, math.clamp(startPos.X.Offset + delta.X, 0, game:GetService("Workspace").CurrentCamera.ViewportSize.X - PANEL_W),
-                                      startPos.Y.Scale, math.clamp(startPos.Y.Offset + delta.Y, 0, game:GetService("Workspace").CurrentCamera.ViewportSize.Y - PANEL_H))
+            panel.Position = UDim2.new(startPos.X.Scale, math.clamp(startPos.X.Offset + delta.X, 0, math.max(0, workspace.CurrentCamera.ViewportSize.X - PANEL_W)),
+                                      startPos.Y.Scale, math.clamp(startPos.Y.Offset + delta.Y, 0, math.max(0, workspace.CurrentCamera.ViewportSize.Y - PANEL_H)))
         end
     end)
 end
@@ -279,9 +282,9 @@ spawn(function()
         wait(10)
         if config.antiAfkOn then
             local vu = game:service'VirtualUser'
-            vu:Button2Down(Vector2.new(0,0),Workspace.CurrentCamera.CFrame)
+            vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
             wait(1)
-            vu:Button2Up(Vector2.new(0,0),Workspace.CurrentCamera.CFrame)
+            vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
         end
     end
 end)
@@ -320,4 +323,22 @@ spawn(function()
         wait(0.05)
         if not LocalPlayer.Character then continue end
         local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        local range =
+        local range = config.hitboxRange
+        if tool and tool:FindFirstChild("Handle") and config.instantKillOn then
+            for _, part in ipairs(workspace:GetDescendants()) do
+                if part:IsA("BasePart") and LocalPlayer:DistanceFromCharacter(part.Position) <= range then
+                    local parent = part.Parent
+                    if parent and parent ~= LocalPlayer.Character then
+                        local humanoid = parent:FindFirstChildWhichIsA("Humanoid")
+                        if humanoid and humanoid.Health > 0 then
+                            tool:Activate()
+                            firetouchinterest(tool.Handle, part, 0)
+                            firetouchinterest(tool.Handle, part, 1)
+                            humanoid.Health = 0
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
