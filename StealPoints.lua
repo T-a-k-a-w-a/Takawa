@@ -1,8 +1,8 @@
 local players = game:GetService("Players")
 local player = players.LocalPlayer
 local Range = math.min(getgenv().Range or 15, 15)
-local regenRate = 50 -- Jumlah HP regen per detik (bisa diubah)
-local regenInterval = 1 -- Detik (jangan kurang dari 0.2 untuk aman)
+local regenPerTick = 2.5 -- 2.5 x 20 = 50 per detik
+local regenInterval = 0.05
 
 -- Auto Attack segala arah
 function getNearbyParts(maxDistance)
@@ -32,7 +32,7 @@ spawn(function()
         if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
             local h = player.Character:FindFirstChildOfClass("Humanoid")
             if h.Health < 100 then
-                h.Health = math.min(100, h.Health + regenRate)
+                h.Health = math.min(100, h.Health + regenPerTick)
             end
         end
     end
