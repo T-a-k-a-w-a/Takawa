@@ -1,35 +1,28 @@
---[[
-    Fisch Auto Fishing Suite - iOS Style
-    @T-a-k-a-w-a request
-    UI: iOS style, scrollable, tabbed
-]]
+-- Fisch Suite Panel v1.0 (UI Only, No Error!)
+-- By T-a-k-a-w-a (Copilot Chat Assistant)
 
--- === STATE ===
-getgenv().autoCast = false
-getgenv().autoShake = false
-getgenv().autoReels = false
-getgenv().autoFishing = false
-getgenv().autoSell = false
-getgenv().espPlayer = false
-getgenv().espNpc = false
-getgenv().espEvent = false
-getgenv().espCollectible = false
-getgenv().espRod = false
-getgenv().notify = true
+-- Hapus panel lama jika ada
+pcall(function() game.CoreGui.FischSuitePanel:Destroy() end)
 
--- === UI SETUP ===
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+
+--=== UI ROOT ===--
 local FischUI = Instance.new("ScreenGui")
 FischUI.Name = "FischSuitePanel"
-FischUI.Parent = game:GetService("CoreGui")
+FischUI.Parent = CoreGui
+FischUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+FischUI.ResetOnSpawn = false
+FischUI.IgnoreGuiInset = true
 
--- Panel utama (iOS rounded style)
+--=== PANEL FRAME ===--
 local Panel = Instance.new("Frame")
 Panel.Name = "Panel"
 Panel.AnchorPoint = Vector2.new(0.5,0.5)
 Panel.Position = UDim2.new(0.5,0,0.5,0)
-Panel.Size = UDim2.new(0,400,0,520)
+Panel.Size = UDim2.new(0,400,0,540)
 Panel.BackgroundColor3 = Color3.fromRGB(245,245,245)
-Panel.BackgroundTransparency = 0.12
+Panel.BackgroundTransparency = 0.08
 Panel.BorderSizePixel = 0
 Panel.ClipsDescendants = true
 Panel.Parent = FischUI
@@ -37,19 +30,20 @@ Panel.ZIndex = 10
 Panel.Active = true
 Panel.Draggable = true
 
--- Tab bar
+local UICorner = Instance.new("UICorner", Panel)
+UICorner.CornerRadius = UDim.new(0,18)
+
+--=== TAB BAR ===--
+local Tabs = {"Main","ESP","Teleport","Inventory","Misc"}
 local TabBar = Instance.new("Frame")
 TabBar.Name = "TabBar"
-TabBar.Size = UDim2.new(1,0,0,40)
+TabBar.Size = UDim2.new(1,0,0,44)
 TabBar.Position = UDim2.new(0,0,0,0)
 TabBar.BackgroundTransparency = 1
 TabBar.Parent = Panel
 TabBar.ZIndex = 11
 
--- Tabs (Main, ESP, Teleport, Inventory, Misc)
-local Tabs = {"Main","ESP","Teleport","Inventory","Misc"}
 local TabButtons = {}
-
 for i, tab in ipairs(Tabs) do
     local btn = Instance.new("TextButton")
     btn.Text = tab
@@ -65,27 +59,93 @@ for i, tab in ipairs(Tabs) do
     TabButtons[tab] = btn
 end
 
--- Scrolling container
+--=== SCROLLING CONTENT ===--
 local Scroll = Instance.new("ScrollingFrame")
 Scroll.Name = "Scroll"
-Scroll.Size = UDim2.new(1,0,1,-40)
-Scroll.Position = UDim2.new(0,0,0,40)
+Scroll.Size = UDim2.new(1,0,1,-44)
+Scroll.Position = UDim2.new(0,0,0,44)
 Scroll.CanvasSize = UDim2.new(0,0,2,0)
 Scroll.BackgroundTransparency = 1
 Scroll.BorderSizePixel = 0
 Scroll.Parent = Panel
 Scroll.ZIndex = 11
-Scroll.ScrollBarThickness = 6
+Scroll.ScrollBarThickness = 7
 
--- Helper: Buat section judul
+--=== NOTIFIKASI ===--
+local function showNotif(txt)
+    local notif = Instance.new("TextLabel")
+    notif.Text = txt
+    notif.Size = UDim2.new(0.62,0,0,38)
+    notif.Position = UDim2.new(0.19,0,0.06,0)
+    notif.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    notif.BackgroundTransparency = 0.13
+    notif.TextColor3 = Color3.fromRGB(0,110,255)
+    notif.Font = Enum.Font.GothamBold
+    notif.TextSize = 18
+    notif.ClipsDescendants = true
+    notif.ZIndex = 99
+    notif.Parent = FischUI
+    notif.AnchorPoint = Vector2.new(0.5,0)
+    local uc = Instance.new("UICorner", notif)
+    uc.CornerRadius = UDim.new(0,16)
+    notif.TextStrokeTransparency = 0.8
+    notif.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+    notif.BorderSizePixel = 0
+    notif.Visible = true
+    TweenService:Create(notif, TweenInfo.new(0.19), {TextTransparency=0, BackgroundTransparency=0.13}):Play()
+    task.spawn(function()
+        wait(2)
+        TweenService:Create(notif, TweenInfo.new(0.5), {TextTransparency=1, BackgroundTransparency=1}):Play()
+        wait(0.5)
+        notif:Destroy()
+    end)
+end
+
+--=== STATE ===--
+getgenv().FischSuite = getgenv().FischSuite or {}
+local state = getgenv().FischSuite
+-- Main
+state.autoCast = false
+state.autoCastDelay = "0.5"
+state.autoShake = false
+state.autoShakeDelay = "0.5"
+state.autoReels = false
+state.autoReelsMode = "Bar"
+state.autoFishing = false
+state.autoSell = false
+state.showBar = false
+-- ESP
+state.espPlayer = false
+state.espNpc = false
+state.espEvent = false
+state.espCollectible = false
+state.espRod = false
+-- Teleport
+state.tpMosewood = false
+state.tpTerrapin = false
+state.tpRoslit = false
+state.tpX = ""
+state.tpY = ""
+state.tpZ = ""
+-- Inventory
+state.invValue = "0"
+-- Misc
+state.spoofName = ""
+state.spoofUser = ""
+state.autoBubble = false
+state.autoGlider = false
+state.autoWisdomRod = false
+state.notify = true
+
+--=== UI HELPERS ===--
 local function sectionTitle(txt, y)
     local t = Instance.new("TextLabel")
     t.Text = txt
-    t.Position = UDim2.new(0,20,0,y)
-    t.Size = UDim2.new(1,-40,0,24)
+    t.Position = UDim2.new(0,18,0,y)
+    t.Size = UDim2.new(1,-36,0,22)
     t.BackgroundTransparency = 1
     t.Font = Enum.Font.GothamBold
-    t.TextSize = 18
+    t.TextSize = 17
     t.TextColor3 = Color3.fromRGB(0,130,255)
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.Parent = Scroll
@@ -93,11 +153,10 @@ local function sectionTitle(txt, y)
     return t
 end
 
--- Helper: Buat toggle
 local function makeToggle(txt, var, y, callback)
     local bg = Instance.new("Frame")
-    bg.Position = UDim2.new(0,20,0,y)
-    bg.Size = UDim2.new(1,-40,0,32)
+    bg.Position = UDim2.new(0,18,0,y)
+    bg.Size = UDim2.new(1,-36,0,30)
     bg.BackgroundTransparency = 1
     bg.Parent = Scroll
     bg.ZIndex = 14
@@ -107,7 +166,7 @@ local function makeToggle(txt, var, y, callback)
     label.Size = UDim2.new(0.7,0,1,0)
     label.Position = UDim2.new(0,0,0,0)
     label.Font = Enum.Font.Gotham
-    label.TextSize = 16
+    label.TextSize = 15
     label.TextColor3 = Color3.fromRGB(20,20,20)
     label.BackgroundTransparency = 1
     label.TextXAlignment = Enum.TextXAlignment.Left
@@ -118,37 +177,38 @@ local function makeToggle(txt, var, y, callback)
     toggle.Size = UDim2.new(0.3,0,1,0)
     toggle.Position = UDim2.new(0.7,0,0,0)
     toggle.Font = Enum.Font.GothamBlack
-    toggle.TextSize = 16
-    toggle.Text = getgenv()[var] and "ON" or "OFF"
-    toggle.BackgroundColor3 = getgenv()[var] and Color3.fromRGB(80,220,120) or Color3.fromRGB(220,80,80)
+    toggle.TextSize = 15
+    toggle.Text = state[var] and "ON" or "OFF"
+    toggle.BackgroundColor3 = state[var] and Color3.fromRGB(80,220,120) or Color3.fromRGB(220,80,80)
     toggle.TextColor3 = Color3.fromRGB(255,255,255)
+    toggle.AutoButtonColor = true
     toggle.Parent = bg
     toggle.ZIndex = 15
-
+    local uc = Instance.new("UICorner",toggle)
+    uc.CornerRadius = UDim.new(0,9)
     toggle.MouseButton1Click:Connect(function()
-        getgenv()[var] = not getgenv()[var]
-        toggle.Text = getgenv()[var] and "ON" or "OFF"
-        toggle.BackgroundColor3 = getgenv()[var] and Color3.fromRGB(80,220,120) or Color3.fromRGB(220,80,80)
-        if callback then callback(getgenv()[var]) end
-        if getgenv().notify then showNotif(txt.." : "..(getgenv()[var] and "Aktif" or "Mati")) end
+        state[var] = not state[var]
+        toggle.Text = state[var] and "ON" or "OFF"
+        toggle.BackgroundColor3 = state[var] and Color3.fromRGB(80,220,120) or Color3.fromRGB(220,80,80)
+        if callback then callback(state[var]) end
+        if state.notify then showNotif(txt.." : "..(state[var] and "Aktif" or "Mati")) end
     end)
 end
 
--- Helper: Buat input box (misal delay/cordinate spoof)
 local function makeInput(txt, var, y, callback)
     local bg = Instance.new("Frame")
-    bg.Position = UDim2.new(0,20,0,y)
-    bg.Size = UDim2.new(1,-40,0,32)
+    bg.Position = UDim2.new(0,18,0,y)
+    bg.Size = UDim2.new(1,-36,0,30)
     bg.BackgroundTransparency = 1
     bg.Parent = Scroll
     bg.ZIndex = 14
 
     local label = Instance.new("TextLabel")
     label.Text = txt
-    label.Size = UDim2.new(0.5,0,1,0)
+    label.Size = UDim2.new(0.45,0,1,0)
     label.Position = UDim2.new(0,0,0,0)
     label.Font = Enum.Font.Gotham
-    label.TextSize = 16
+    label.TextSize = 14
     label.TextColor3 = Color3.fromRGB(20,20,20)
     label.BackgroundTransparency = 1
     label.TextXAlignment = Enum.TextXAlignment.Left
@@ -156,185 +216,167 @@ local function makeInput(txt, var, y, callback)
     label.ZIndex = 15
 
     local box = Instance.new("TextBox")
-    box.Size = UDim2.new(0.5,0,1,0)
-    box.Position = UDim2.new(0.5,0,0,0)
+    box.Size = UDim2.new(0.55,0,1,0)
+    box.Position = UDim2.new(0.45,0,0,0)
     box.Font = Enum.Font.Gotham
-    box.TextSize = 15
-    box.Text = tostring(getgenv()[var] or "")
+    box.TextSize = 14
+    box.Text = tostring(state[var] or "")
     box.BackgroundColor3 = Color3.fromRGB(250,250,250)
-    box.TextColor3 = Color3.fromRGB(60,60,60)
+    box.TextColor3 = Color3.fromRGB(30,30,30)
+    local uc = Instance.new("UICorner",box)
+    uc.CornerRadius = UDim.new(0,8)
     box.Parent = bg
     box.ZIndex = 15
 
     box.FocusLost:Connect(function()
-        getgenv()[var] = box.Text
+        state[var] = box.Text
         if callback then callback(box.Text) end
-        if getgenv().notify then showNotif(txt.." Diubah ke "..box.Text) end
+        if state.notify then showNotif(txt.." diubah ke "..box.Text) end
     end)
 end
 
--- Helper: Notifikasi iOS style
-function showNotif(txt)
-    local notif = Instance.new("TextLabel")
-    notif.Text = txt
-    notif.Size = UDim2.new(0.6,0,0,40)
-    notif.Position = UDim2.new(0.2,0,0.08,0)
-    notif.BackgroundColor3 = Color3.fromRGB(255,255,255)
-    notif.BackgroundTransparency = 0.15
-    notif.TextColor3 = Color3.fromRGB(0,100,255)
-    notif.Font = Enum.Font.GothamBold
-    notif.TextSize = 18
-    notif.ClipsDescendants = true
-    notif.ZIndex = 99
-    notif.Parent = FischUI
-    notif.AnchorPoint = Vector2.new(0.5,0)
-    notif.TextStrokeTransparency = 0.8
-    notif.TextStrokeColor3 = Color3.fromRGB(0,0,0)
-    notif.BorderSizePixel = 0
-    notif.BackgroundTransparency = 0.15
-    notif.TextTransparency = 0
-    notif.Visible = true
-    game:GetService("TweenService"):Create(notif, TweenInfo.new(0.2), {TextTransparency=0, BackgroundTransparency=0.15}):Play()
-    task.spawn(function()
-        wait(2.1)
-        game:GetService("TweenService"):Create(notif, TweenInfo.new(0.4), {TextTransparency=1, BackgroundTransparency=1}):Play()
-        wait(0.45)
-        notif:Destroy()
+local function makeButton(txt, y, callback)
+    local btn = Instance.new("TextButton")
+    btn.Text = txt
+    btn.Size = UDim2.new(0.7,0,0,28)
+    btn.Position = UDim2.new(0.15,0,0,y)
+    btn.BackgroundColor3 = Color3.fromRGB(0,180,255)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 15
+    btn.ZIndex = 17
+    btn.Parent = Scroll
+    local uc = Instance.new("UICorner",btn)
+    uc.CornerRadius = UDim.new(0,7)
+    btn.MouseButton1Click:Connect(function()
+        if callback then callback() end
     end)
+    return btn
 end
 
--- === TAB BUILDER ===
-function buildTab(tab)
+--=== TAB BUILDER ===--
+local function buildTab(tab)
     Scroll:ClearAllChildren()
-    local y = 8
+    local y = 10
     if tab == "Main" then
-        sectionTitle("Auto Fishing", y) y = y+28
-        makeToggle("Auto Cast", "autoCast", y, nil) y = y+36
-        makeInput("Delay Cast", "autoCastDelay", y, nil) y = y+36
-        makeToggle("Auto Shake", "autoShake", y, nil) y = y+36
-        makeInput("Delay Shake", "autoShakeDelay", y, nil) y = y+36
-        makeToggle("Auto Reels", "autoReels", y, nil) y = y+36
-        makeToggle("Auto Sell", "autoSell", y, nil) y = y+36
-        makeToggle("Show Progress Bar", "showBar", y, nil) y = y+36
-        makeToggle("Auto Fishing (Master)", "autoFishing", y, nil) y = y+36
+        sectionTitle("Auto Fishing", y) y = y+24
+        makeToggle("Auto Cast", "autoCast", y) y = y+32
+        makeInput("Delay Cast", "autoCastDelay", y) y = y+32
+        makeToggle("Auto Shake", "autoShake", y) y = y+32
+        makeInput("Delay Shake", "autoShakeDelay", y) y = y+32
+        makeToggle("Auto Reels", "autoReels", y) y = y+32
+        makeInput("Mode (Bar/Instant)", "autoReelsMode", y) y = y+32
+        makeToggle("Auto Sell", "autoSell", y) y = y+32
+        makeToggle("Show Progress Bar", "showBar", y) y = y+32
+        makeToggle("Auto Fishing (Master)", "autoFishing", y) y = y+32
     elseif tab == "ESP" then
-        sectionTitle("ESP", y) y = y+28
-        makeToggle("ESP Player", "espPlayer", y, nil) y = y+36
-        makeToggle("ESP NPC", "espNpc", y, nil) y = y+36
-        makeToggle("ESP Event", "espEvent", y, nil) y = y+36
-        makeToggle("ESP Collectible", "espCollectible", y, nil) y = y+36
-        makeToggle("ESP Rod", "espRod", y, nil) y = y+36
+        sectionTitle("ESP", y) y = y+24
+        makeToggle("ESP Player", "espPlayer", y) y = y+32
+        makeToggle("ESP NPC", "espNpc", y) y = y+32
+        makeToggle("ESP Event", "espEvent", y) y = y+32
+        makeToggle("ESP Collectible", "espCollectible", y) y = y+32
+        makeToggle("ESP Rod", "espRod", y) y = y+32
     elseif tab == "Teleport" then
-        sectionTitle("Teleport", y) y = y+28
-        -- List pulau, misal:
-        makeToggle("Teleport Mosewood", "tpMosewood", y, function(on)
-            if on then showNotif("Teleport ke Mosewood!"); /* call teleport code here... */ end
+        sectionTitle("Teleport", y) y = y+24
+        makeButton("Ke Mosewood", y, function()
+            showNotif("Teleport ke Mosewood!")
+            -- Teleport logic
         end) y = y+36
-        makeToggle("Teleport Terrapin", "tpTerrapin", y, function(on)
-            if on then showNotif("Teleport ke Terrapin!"); /* call teleport code here... */ end
+        makeButton("Ke Terrapin", y, function()
+            showNotif("Teleport ke Terrapin!")
         end) y = y+36
-        makeToggle("Teleport Roslit", "tpRoslit", y, function(on)
-            if on then showNotif("Teleport ke Roslit!"); /* call teleport code here... */ end
+        makeButton("Ke Roslit", y, function()
+            showNotif("Teleport ke Roslit!")
         end) y = y+36
-        -- Input koordinat
-        makeInput("Custom X", "tpX", y, nil) y = y+36
-        makeInput("Custom Y", "tpY", y, nil) y = y+36
-        makeInput("Custom Z", "tpZ", y, nil) y = y+36
-        local btn = Instance.new("TextButton")
-        btn.Text = "Teleport ke Koordinat"
-        btn.Size = UDim2.new(0.7,0,0,30)
-        btn.Position = UDim2.new(0.15,0,0,y)
-        btn.BackgroundColor3 = Color3.fromRGB(0,180,255)
-        btn.TextColor3 = Color3.fromRGB(255,255,255)
-        btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 16
-        btn.ZIndex = 17
-        btn.Parent = Scroll
-        btn.MouseButton1Click:Connect(function()
-            showNotif("Teleport ke: "..(getgenv().tpX or "?")..", "..(getgenv().tpY or "?")..", "..(getgenv().tpZ or "?"))
-            -- call teleport code here...
-        end)
-        y = y+36
+        sectionTitle("Custom Koordinat", y) y = y+24
+        makeInput("X", "tpX", y) y = y+32
+        makeInput("Y", "tpY", y) y = y+32
+        makeInput("Z", "tpZ", y) y = y+32
+        makeButton("Teleport ke Koordinat", y, function()
+            showNotif("Teleport ke: "..(state.tpX or "?")..","..(state.tpY or "?")..","..(state.tpZ or "?"))
+        end) y = y+36
     elseif tab == "Inventory" then
-        sectionTitle("Inventory", y) y = y+28
-        makeToggle("Auto Sell", "autoSell", y, nil) y = y+36
-        local btn = Instance.new("TextButton")
-        btn.Text = "Sell All Sekarang"
-        btn.Size = UDim2.new(0.7,0,0,30)
-        btn.Position = UDim2.new(0.15,0,0,y)
-        btn.BackgroundColor3 = Color3.fromRGB(0,180,255)
-        btn.TextColor3 = Color3.fromRGB(255,255,255)
-        btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 16
-        btn.ZIndex = 17
-        btn.Parent = Scroll
-        btn.MouseButton1Click:Connect(function()
+        sectionTitle("Inventory", y) y = y+24
+        local lbl = Instance.new("TextLabel")
+        lbl.Text = "Nilai Total Ikan: "..(state.invValue or "0")
+        lbl.Position = UDim2.new(0,18,0,y)
+        lbl.Size = UDim2.new(1,-36,0,24)
+        lbl.BackgroundTransparency = 1
+        lbl.Font = Enum.Font.GothamBold
+        lbl.TextSize = 15
+        lbl.TextColor3 = Color3.fromRGB(0,0,0)
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Parent = Scroll
+        y = y+28
+        makeToggle("Auto Sell", "autoSell", y) y = y+32
+        makeButton("Sell All Sekarang", y, function()
             showNotif("Sell Semua Ikan!")
-            -- call sell code...
-        end)
-        y = y+36
-    elseif tab == "Misc" then
-        sectionTitle("Spoofing", y) y = y+28
-        makeInput("Display Name Baru", "spoofName", y, function(val)
-            showNotif("Nama diganti ke "..val)
-            -- call spoof code...
         end) y = y+36
+    elseif tab == "Misc" then
+        sectionTitle("Spoofing", y) y = y+24
+        makeInput("Display Name Baru", "spoofName", y, function(val)
+            showNotif("Nama display diganti ke "..val)
+        end) y = y+32
         makeInput("Username Baru", "spoofUser", y, function(val)
             showNotif("Username diganti ke "..val)
-            -- call spoof code...
-        end) y = y+36
-        sectionTitle("Item", y) y = y+28
-        makeToggle("Auto Unlock Bubble", "autoBubble", y, nil) y = y+36
-        makeToggle("Auto Unlock Glider", "autoGlider", y, nil) y = y+36
-        makeToggle("Auto Unlock Wisdom Rod", "autoWisdomRod", y, nil) y = y+36
-        makeToggle("Notifikasi Event", "notify", y, nil) y = y+36
+        end) y = y+32
+        sectionTitle("Item", y) y = y+24
+        makeToggle("Auto Unlock Bubble", "autoBubble", y) y = y+32
+        makeToggle("Auto Unlock Glider", "autoGlider", y) y = y+32
+        makeToggle("Auto Unlock Wisdom Rod", "autoWisdomRod", y) y = y+32
+        makeToggle("Notifikasi Event", "notify", y) y = y+32
     end
     Scroll.CanvasSize = UDim2.new(0,0,0,y+44)
 end
 
--- Tab switching
+--=== TAB SWITCHING ===--
+local currentTab = "Main"
 for _,btn in pairs(TabButtons) do
     btn.MouseButton1Click:Connect(function()
         for _,b in pairs(TabButtons) do b.BackgroundColor3 = Color3.fromRGB(255,255,255) end
         btn.BackgroundColor3 = Color3.fromRGB(230,245,255)
         buildTab(btn.Text)
+        currentTab = btn.Text
     end)
 end
--- Init on Main
 TabButtons["Main"].BackgroundColor3 = Color3.fromRGB(230,245,255)
 buildTab("Main")
 
--- === EVENT NOTIFIKASI ===
--- Contoh: Notifikasi event boss spawn
+--=== NOTIFIKASI EVENT BOSS (Contoh) ===--
 game:GetService("Workspace").ChildAdded:Connect(function(child)
-    if getgenv().notify then
-        if child.Name:match("Isonade") then
+    if state.notify then
+        if tostring(child.Name):lower():find("isonade") then
             showNotif("Isonade telah Spawn!")
-        elseif child.Name:match("DepthSerpent") then
+        elseif tostring(child.Name):lower():find("depth") or tostring(child.Name):lower():find("serpent") then
             showNotif("The Depth Serpent telah Spawn!")
         end
     end
 end)
 
--- === FUNGSI UTAMA (LOGIC MASIH KOSONG, ISI SENDIRI/REQUEST) ===
--- AutoCast, AutoShake, AutoReels, Teleport, Sell, Spoof, ESP, dsb
--- Contoh:
-spawn(function()
-    while true do
-        if getgenv().autoCast then
-            -- logic auto cast
-        end
-        if getgenv().autoShake then
-            -- logic auto shake
-        end
-        if getgenv().autoReels then
-            -- logic auto reels
-        end
-        if getgenv().autoSell then
-            -- logic auto sell
-        end
-        wait(0.25)
+--=== DRAGGABLE FIX FOR MOBILE ===--
+local UserInputService = game:GetService("UserInputService")
+local dragging, dragInput, dragStart, startPos
+Panel.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Panel.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+Panel.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        Panel.Position = startPos + UDim2.new(0, delta.X, 0, delta.Y)
     end
 end)
 
--- Tambahkan logic tele, esp, spoof, dsb sesuai kebutuhan.
+--=== SAFE LOOP (NO ERROR) ===--
+spawn(function()
+    while true do
+        -- Semua logic utama DI SINI, aman jika belum diisi
+        wait(0.3)
+    end
+end)
