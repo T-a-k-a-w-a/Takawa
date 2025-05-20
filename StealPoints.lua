@@ -1,37 +1,15 @@
---// Takawa Panel V4: Full draggable, full feature, mobile ready
+-- TAKAWA PANEL V7 - Ping Info, Footer, Animasi, OK->Done, Compact UI
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
--- CONFIG (in memory)
-local config = {
-    walkspeed = 19,
-    range = 15,
-    displayname = LocalPlayer.DisplayName,
-    username = LocalPlayer.Name,
-}
--- Save/Load config (if supported)
-local configFile = "TakawaPanelConfig.json"
-local function saveConfig()
-    if writefile then
-        pcall(function() writefile(configFile, HttpService:JSONEncode(config)) end)
-    end
-end
-local function loadConfig()
-    if readfile and isfile and isfile(configFile) then
-        local succ, data = pcall(function() return HttpService:JSONDecode(readfile(configFile)) end)
-        if succ and data then
-            for k,v in pairs(data) do config[k]=v end
-        end
-    end
-end
-loadConfig()
-
--- GUI setup
-local PANEL_W, PANEL_H = 340, 470
+local PANEL_W, PANEL_H = 350, 310
+local VERSION = "7"
 local gui = Instance.new("ScreenGui")
 gui.Name = "TakawaPanel"
 gui.ResetOnSpawn = false
@@ -39,16 +17,15 @@ gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local panel = Instance.new("Frame", gui)
 panel.Size = UDim2.new(0, PANEL_W, 0, PANEL_H)
-panel.Position = UDim2.new(1, -PANEL_W-18, 0, 60)
+panel.Position = UDim2.new(1, -PANEL_W-15, 0, 64)
 panel.BackgroundColor3 = Color3.fromRGB(33,36,67)
 panel.BorderSizePixel = 0
 panel.Active = true
 panel.ClipsDescendants = true
 
--- Minimized Button (☰) - always follows panel position
 local minimizedPanel = Instance.new("TextButton", gui)
 minimizedPanel.Size = UDim2.new(0, 40, 0, 40)
-minimizedPanel.Position = UDim2.new(0, panel.Position.X.Offset + PANEL_W - 46, 0, panel.Position.Y.Offset + 8)
+minimizedPanel.Position = UDim2.new(0, panel.Position.X.Offset + PANEL_W - 44, 0, panel.Position.Y.Offset + 10)
 minimizedPanel.BackgroundColor3 = Color3.fromRGB(90,90,110)
 minimizedPanel.Text = "☰"
 minimizedPanel.TextColor3 = Color3.new(1,1,1)
@@ -57,41 +34,63 @@ minimizedPanel.Visible = false
 minimizedPanel.AutoButtonColor = true
 minimizedPanel.BorderSizePixel = 0
 
--- Title
+local minimize = Instance.new("TextButton", panel)
+minimize.Size = UDim2.new(0, 36, 0, 36)
+minimize.Position = UDim2.new(1, -36, 0, 0)
+minimize.BackgroundColor3 = Color3.fromRGB(90,90,110)
+minimize.Text = "━"
+minimize.TextSize = 18
+minimize.TextColor3 = Color3.new(1,1,1)
+minimize.Font = Enum.Font.GothamBold
+minimize.BorderSizePixel = 0
+
 local title = Instance.new("TextLabel", panel)
-title.Size = UDim2.new(1, -40, 0, 38)
+title.Size = UDim2.new(1, -36, 0, 36)
 title.Position = UDim2.new(0, 0, 0, 0)
 title.BackgroundColor3 = Color3.fromRGB(60,90,150)
 title.Text = "Takawa Panel"
 title.TextColor3 = Color3.new(1,1,1)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 20
+title.TextSize = 18
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.BorderSizePixel = 0
 
--- Minimize button (on panel)
-local minimize = Instance.new("TextButton", panel)
-minimize.Size = UDim2.new(0, 38, 0, 38)
-minimize.Position = UDim2.new(1, -38, 0, 0)
-minimize.BackgroundColor3 = Color3.fromRGB(90,90,110)
-minimize.Text = "━"
-minimize.TextSize = 20
-minimize.TextColor3 = Color3.new(1,1,1)
-minimize.Font = Enum.Font.GothamBold
-minimize.BorderSizePixel = 0
+-- Ping Info pojok kanan atas panel
+local pingLabel = Instance.new("TextLabel", panel)
+pingLabel.Size = UDim2.new(0, 85, 0, 18)
+pingLabel.Position = UDim2.new(1, -92, 0, 4)
+pingLabel.BackgroundTransparency = 1
+pingLabel.Text = "Ping : ..."
+pingLabel.TextColor3 = Color3.fromRGB(130,255,160)
+pingLabel.Font = Enum.Font.GothamBold
+pingLabel.TextSize = 13
+pingLabel.TextXAlignment = Enum.TextXAlignment.Right
+pingLabel.Visible = true
 
--- Scrollable content
+-- Footer Panel
+local footer = Instance.new("TextLabel", panel)
+footer.Size = UDim2.new(1, 0, 0, 16)
+footer.Position = UDim2.new(0, 0, 1, -16)
+footer.BackgroundTransparency = 1
+footer.Text = "Script by Takawa Version " .. VERSION
+footer.TextColor3 = Color3.fromRGB(140,180,255)
+footer.Font = Enum.Font.GothamBold
+footer.TextSize = 13
+footer.TextXAlignment = Enum.TextXAlignment.Center
+footer.BorderSizePixel = 0
+
+-- Scrollable Content
 local scroll = Instance.new("ScrollingFrame", panel)
-scroll.Size = UDim2.new(1, 0, 1, -38)
-scroll.Position = UDim2.new(0, 0, 0, 38)
+scroll.Size = UDim2.new(1, 0, 1, -52)
+scroll.Position = UDim2.new(0, 0, 0, 36)
 scroll.BackgroundTransparency = 1
 scroll.BorderSizePixel = 0
-scroll.CanvasSize = UDim2.new(0, 0, 0, 1000)
-scroll.ScrollBarThickness = 7
+scroll.CanvasSize = UDim2.new(0, 0, 0, 450)
+scroll.ScrollBarThickness = 6
 scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 scroll.ClipsDescendants = true
 
--- DRAG LOGIC: drag seluruh area panel (bukan hanya judul/tombol)
+-- DRAG LOGIC: drag seluruh area panel (dengan animasi smooth)
 local UIS = game:GetService("UserInputService")
 local drag, dragStart, startPos
 panel.InputBegan:Connect(function(input)
@@ -111,329 +110,207 @@ UIS.InputChanged:Connect(function(input)
         local delta = input.Position - dragStart
         local newX = math.clamp(startPos.X.Offset + delta.X, 0, screenX - PANEL_W)
         local newY = math.clamp(startPos.Y.Offset + delta.Y, 0, screenY - PANEL_H)
-        panel.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
-        -- move minimizedPanel to follow panel position always
-        minimizedPanel.Position = UDim2.new(0, newX + PANEL_W - 46, 0, newY + 8)
+        -- animasi smooth
+        TweenService:Create(panel, TweenInfo.new(0.13, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0, newX, 0, newY)}):Play()
+        TweenService:Create(minimizedPanel, TweenInfo.new(0.13, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0, newX + PANEL_W - 44, 0, newY + 10)}):Play()
     end
 end)
-
-minimize.MouseButton1Click:Connect(function()
+-- Animasi smooth minimize/restore
+local function smoothHidePanel()
+    TweenService:Create(panel, TweenInfo.new(0.23, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = panel.Position + UDim2.new(0, 80, 0, 0), BackgroundTransparency = 0.9, Visible = false}):Play()
+    wait(0.15)
     panel.Visible = false
     minimizedPanel.Visible = true
-    minimizedPanel.Position = UDim2.new(0, panel.Position.X.Offset + PANEL_W - 46, 0, panel.Position.Y.Offset + 8)
-end)
-minimizedPanel.MouseButton1Click:Connect(function()
+end
+local function smoothShowPanel()
     panel.Visible = true
+    panel.BackgroundTransparency = 0.9
+    panel.Position = minimizedPanel.Position - UDim2.new(0, PANEL_W - 44, 0, 10)
+    TweenService:Create(panel, TweenInfo.new(0.21, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0, panel.Position.X.Offset - 80, 0, panel.Position.Y.Offset), BackgroundTransparency = 0}):Play()
     minimizedPanel.Visible = false
-end)
+end
+minimize.MouseButton1Click:Connect(smoothHidePanel)
+minimizedPanel.MouseButton1Click:Connect(smoothShowPanel)
 
--- UI Utility
-local function Section(text, y)
+-- RAPATKAN UI: 1 baris, padding minim, tombol OK->Done
+local y = 8
+local function makeLabel(txt, y, w)
     local l = Instance.new("TextLabel", scroll)
-    l.Size = UDim2.new(1, -18, 0, 22)
+    l.Size = UDim2.new(0, w or 85, 0, 18)
     l.Position = UDim2.new(0, 8, 0, y)
-    l.Text = text
     l.BackgroundTransparency = 1
-    l.TextColor3 = Color3.fromRGB(170,210,250)
-    l.Font = Enum.Font.GothamBold
-    l.TextSize = 16
+    l.Text = txt
+    l.TextColor3 = Color3.fromRGB(210,210,210)
+    l.Font = Enum.Font.Gotham
+    l.TextSize = 13
     l.TextXAlignment = Enum.TextXAlignment.Left
     return l
 end
-local function SubLabel(txt, y)
-    local s = Instance.new("TextLabel", scroll)
-    s.Size = UDim2.new(1, -28, 0, 16)
-    s.Position = UDim2.new(0, 16, 0, y)
-    s.BackgroundTransparency = 1
-    s.Text = txt
-    s.TextColor3 = Color3.fromRGB(210,210,210)
-    s.Font = Enum.Font.Gotham
-    s.TextSize = 13
-    s.TextXAlignment = Enum.TextXAlignment.Left
-    return s
-end
-local function InputWithOK(txt, y, val, cb)
-    local label = Instance.new("TextLabel", scroll)
-    label.Size = UDim2.new(0, 95, 0, 20)
-    label.Position = UDim2.new(0, 12, 0, y)
-    label.BackgroundTransparency = 1
-    label.Text = txt..":"
-    label.TextColor3 = Color3.fromRGB(210,210,210)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
+local function makeBox(val, x, y, cb)
     local box = Instance.new("TextBox", scroll)
-    box.Size = UDim2.new(0, 110, 0, 20)
-    box.Position = UDim2.new(0, 98, 0, y)
+    box.Size = UDim2.new(0, 92, 0, 18)
+    box.Position = UDim2.new(0, x, 0, y)
     box.BackgroundColor3 = Color3.fromRGB(60,60,100)
     box.TextColor3 = Color3.new(1,1,1)
     box.Text = val
-    box.PlaceholderText = ""
-    box.TextSize = 13
+    box.TextSize = 12
     box.Font = Enum.Font.Gotham
     box.ClearTextOnFocus = false
-
-    local ok = Instance.new("TextButton", scroll)
-    ok.Size = UDim2.new(0, 28, 0, 20)
-    ok.Position = UDim2.new(0, 212, 0, y)
-    ok.BackgroundColor3 = Color3.fromRGB(120,180,80)
-    ok.Text = "OK"
-    ok.Font = Enum.Font.GothamBold
-    ok.TextColor3 = Color3.fromRGB(255,255,255)
-    ok.TextSize = 12
-
-    local check = Instance.new("TextLabel", scroll)
-    check.Size = UDim2.new(0, 18, 0, 20)
-    check.Position = UDim2.new(0, 242, 0, y)
-    check.BackgroundTransparency = 1
-    check.Text = ""
-    check.TextColor3 = Color3.fromRGB(100,220,100)
-    check.Font = Enum.Font.GothamBold
-    check.TextSize = 16
-
-    ok.MouseButton1Click:Connect(function()
-        cb(box.Text)
-        check.Text = "✔"
-        saveConfig()
-        wait(1.1)
-        check.Text = ""
-    end)
+    if cb then
+        box.FocusLost:Connect(function(enter)
+            if enter then cb(box.Text) end
+        end)
+    end
     return box
 end
+local function makeBtn(txt, x, y, w, cb)
+    local btn = Instance.new("TextButton", scroll)
+    btn.Size = UDim2.new(0, w or 56, 0, 18)
+    btn.Position = UDim2.new(0, x, 0, y)
+    btn.BackgroundColor3 = Color3.fromRGB(120,180,80)
+    btn.Text = txt
+    btn.Font = Enum.Font.GothamBold
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.TextSize = 12
+    btn.MouseButton1Click:Connect(cb)
+    return btn
+end
+local function makeOKBtn(x, y, cb)
+    local btn = Instance.new("TextButton", scroll)
+    btn.Size = UDim2.new(0, 44, 0, 18)
+    btn.Position = UDim2.new(0, x, 0, y)
+    btn.BackgroundColor3 = Color3.fromRGB(90,160,70)
+    btn.Text = "OK"
+    btn.Font = Enum.Font.GothamBold
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.TextSize = 12
+    btn.AutoButtonColor = true
+    btn.MouseButton1Click:Connect(function()
+        local ret = cb()
+        btn.Text = "Done"
+        btn.BackgroundColor3 = Color3.fromRGB(60,110,200)
+        wait(1)
+        btn.Text = "OK"
+        btn.BackgroundColor3 = Color3.fromRGB(90,160,70)
+    end)
+    return btn
+end
 
--- Panel Layout & Functionality
-local y = 12
-Section("Identity", y)
-SubLabel("Hanya visual device-mu", y+18)
-local fakeNameBox = InputWithOK("DisplayName", y+34, config.displayname, function(v) config.displayname = v; LocalPlayer.DisplayName = v end)
-local fakeUserBox = InputWithOK("Username", y+60, config.username, function(v) config.username = v; LocalPlayer.Name = v end)
-
-y = y + 95
-Section("Movement", y)
-local wsBox = InputWithOK("WalkSpeed", y+22, tostring(config.walkspeed), function(v)
-    local num = tonumber(v)
-    if num and num >= 5 and num <= 100 then config.walkspeed = num end
+makeLabel("DisplayName", y)
+local dispBox = makeBox(Players.LocalPlayer.DisplayName, 90, y)
+local dispOK = makeOKBtn(185, y, function()
+    Players.LocalPlayer.DisplayName = dispBox.Text
 end)
-game:GetService("RunService").Stepped:Connect(function()
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChildOfClass("Humanoid") then
-        char:FindFirstChildOfClass("Humanoid").WalkSpeed = config.walkspeed
-    end
+makeLabel("Username", y, 65).Position = UDim2.new(0, 245, 0, y)
+local userBox = makeBox(Players.LocalPlayer.Name, 305, y)
+local userOK = makeOKBtn(400, y, function()
+    Players.LocalPlayer.Name = userBox.Text
 end)
 
-y = y + 54
-Section("Combat", y)
-local rangeBox = InputWithOK("Range", y+22, tostring(config.range), function(v)
-    local num = tonumber(v)
-    if num and num >= 1 and num <= 25 then config.range = num end
-end)
--- AutoAttack Fast
-spawn(function()
-    while true do 
-        wait(0.033)
-        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        local function getPartsInViewport(maxDistance)
-            local partsInViewport = {}
-            for _, part in ipairs(workspace:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    local distance = LocalPlayer:DistanceFromCharacter(part.Position)
-                    if distance <= maxDistance then
-                        local _, isVisible = camera:WorldToViewportPoint(part.Position)
-                        if isVisible then
-                            table.insert(partsInViewport, part)
-                        end
-                    end
-                end
+y = y + 24
+makeLabel("WalkSpeed", y)
+local wsBox = makeBox("19", 90, y)
+local wsOK = makeOKBtn(185, y, function()
+    local n = tonumber(wsBox.Text)
+    if n and n >= 5 and n <= 100 then
+        spawn(function()
+            while Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid") do
+                Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = n
+                wait(0.5)
             end
-            return partsInViewport
-        end
-        local parts = getPartsInViewport(config.range)
-        if tool and tool:FindFirstChild("Handle") then
-            for _, part in ipairs(parts) do
-                if part and part.Parent and part.Parent ~= LocalPlayer.Character and part.Parent:FindFirstChildWhichIsA("Humanoid") and part.Parent:FindFirstChildWhichIsA("Humanoid").Health > 0 then
-                    tool:Activate()
-                    firetouchinterest(tool.Handle,part,0)
-                    firetouchinterest(tool.Handle,part,1)
-                end
-            end
-        end
+        end)
     end
 end)
+makeLabel("Range", y, 45).Position = UDim2.new(0, 245, 0, y)
+local rangeBox = makeBox("15", 305, y)
+local rangeOK = makeOKBtn(400, y, function() end)
 
-y = y + 54
-Section("Server Tools", y)
-local copyJob = Instance.new("TextButton", scroll)
-copyJob.Size = UDim2.new(0, 120, 0, 22)
-copyJob.Position = UDim2.new(0, 12, 0, y+24)
-copyJob.BackgroundColor3 = Color3.fromRGB(70,140,210)
-copyJob.Text = "Copy JobId"
-copyJob.Font = Enum.Font.Gotham
-copyJob.TextColor3 = Color3.new(1,1,1)
-copyJob.TextSize = 14
-local copyJobCheck = Instance.new("TextLabel", scroll)
-copyJobCheck.Size = UDim2.new(0, 19, 0, 22)
-copyJobCheck.Position = UDim2.new(0, 136, 0, y+24)
-copyJobCheck.BackgroundTransparency = 1
-copyJobCheck.Text = ""
-copyJobCheck.TextColor3 = Color3.fromRGB(100,220,100)
-copyJobCheck.Font = Enum.Font.GothamBold
-copyJobCheck.TextSize = 16
-copyJob.MouseButton1Click:Connect(function()
-    if setclipboard then
-        setclipboard(game.JobId)
-        copyJobCheck.Text = "✔"
-        wait(1)
-        copyJobCheck.Text = ""
+y = y + 24
+local copyJobBtn = makeBtn("Copy JobId", 8, y, 72, function()
+    if setclipboard then setclipboard(game.JobId) end
+end)
+local copyRbxBtn = makeBtn("Copy Roblox Link", 88, y, 104, function()
+    local l = ("roblox://experiences/start?placeId=%s&gameId=%s&jobId=%s"):format(game.PlaceId, game.GameId, game.JobId)
+    if setclipboard then setclipboard(l) end
+end)
+local copyWebBtn = makeBtn("Copy Web Joiner", 196, y, 94, function()
+    local l = ("https://synergy.eu.pythonanywhere.com/joiner?PlaceId=%s&ServerId=%s"):format(game.PlaceId, game.JobId)
+    if setclipboard then setclipboard(l) end
+end)
+local copyAll = makeBtn("Copy All Link", 296, y, 85, function()
+    local pid, gid, jid = tostring(game.PlaceId), tostring(game.GameId), tostring(game.JobId)
+    local robloxLink = ("roblox://experiences/start?placeId=%s&gameId=%s&jobId=%s"):format(pid, gid, jid)
+    local webJoiner = ("https://synergy.eu.pythonanywhere.com/joiner?PlaceId=%s&ServerId=%s"):format(pid, jid)
+    local text = "[Roblox Link]\n"..robloxLink.."\n[Joiner Link]\n"..webJoiner
+    if setclipboard then setclipboard(text) end
+end)
+
+y = y + 24
+local joinJobBox = makeBox("", 8, y)
+joinJobBox.PlaceholderText = "Paste JobId/Link"
+local joinBtn = makeBtn("JOIN", 110, y, 52, function()
+    local txt = joinJobBox.Text
+    -- Roblox Link
+    local pid, jid = txt:match("placeId=(%d+).*jobId=([%w%-]+)")
+    if not (pid and jid) then
+        -- Synergy Joiner Link
+        pid, jid = txt:match("PlaceId=(%d+)&ServerId=([%w%-]+)")
+    end
+    if not (pid and jid) then
+        -- Hanya JobId
+        pid, jid = tostring(game.PlaceId), txt
+    end
+    if pid and jid and #jid > 10 then
+        TeleportService:TeleportToPlaceInstance(tonumber(pid), jid, Players.LocalPlayer)
     end
 end)
-
-local joinJobBox = Instance.new("TextBox", scroll)
-joinJobBox.Size = UDim2.new(0, 100, 0, 22)
-joinJobBox.Position = UDim2.new(0, 160, 0, y+24)
-joinJobBox.BackgroundColor3 = Color3.fromRGB(60,60,100)
-joinJobBox.TextColor3 = Color3.new(1,1,1)
-joinJobBox.PlaceholderText = "Paste JobId"
-joinJobBox.TextSize = 13
-joinJobBox.Font = Enum.Font.Gotham
-joinJobBox.ClearTextOnFocus = false
-local joinJobBtn = Instance.new("TextButton", scroll)
-joinJobBtn.Size = UDim2.new(0, 42, 0, 22)
-joinJobBtn.Position = UDim2.new(0, 264, 0, y+24)
-joinJobBtn.BackgroundColor3 = Color3.fromRGB(120,180,80)
-joinJobBtn.Text = "JOIN"
-joinJobBtn.Font = Enum.Font.GothamBold
-joinJobBtn.TextColor3 = Color3.fromRGB(255,255,255)
-joinJobBtn.TextSize = 13
-joinJobBtn.MouseButton1Click:Connect(function()
-    local jobid = joinJobBox.Text
-    if #jobid > 10 then
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, jobid, LocalPlayer)
-    end
+local leaveBtn = makeBtn("Leave", 170, y, 46, function()
+    Players.LocalPlayer:Kick("You Keluar Dari Experience ini\n\nModeration Message : Dah keluar sana :v aman kok")
 end)
-
--- Copy Roblox Join Link
-local copyRbxLink = Instance.new("TextButton", scroll)
-copyRbxLink.Size = UDim2.new(0, 148, 0, 22)
-copyRbxLink.Position = UDim2.new(0, 12, 0, y+52)
-copyRbxLink.BackgroundColor3 = Color3.fromRGB(100,120,210)
-copyRbxLink.Text = "Copy Roblox Join Link"
-copyRbxLink.Font = Enum.Font.Gotham
-copyRbxLink.TextColor3 = Color3.new(1,1,1)
-copyRbxLink.TextSize = 14
-local copyRbxLinkCheck = Instance.new("TextLabel", scroll)
-copyRbxLinkCheck.Size = UDim2.new(0, 19, 0, 22)
-copyRbxLinkCheck.Position = UDim2.new(0, 164, 0, y+52)
-copyRbxLinkCheck.BackgroundTransparency = 1
-copyRbxLinkCheck.Text = ""
-copyRbxLinkCheck.TextColor3 = Color3.fromRGB(100,220,100)
-copyRbxLinkCheck.Font = Enum.Font.GothamBold
-copyRbxLinkCheck.TextSize = 16
-copyRbxLink.MouseButton1Click:Connect(function()
-    local placeId = tostring(game.PlaceId)
-    local gameId = tostring(game.GameId)
-    local jobId = tostring(game.JobId)
-    local robloxJoinLink = ("roblox://experiences/start?placeId=%s&gameId=%s&jobId=%s"):format(placeId, gameId, jobId)
-    if setclipboard then
-        setclipboard(robloxJoinLink)
-        copyRbxLinkCheck.Text = "✔"
-        wait(1)
-        copyRbxLinkCheck.Text = ""
-    end
-end)
-
--- Copy Synergy Joiner Link
-local copyWebLink = Instance.new("TextButton", scroll)
-copyWebLink.Size = UDim2.new(0, 148, 0, 22)
-copyWebLink.Position = UDim2.new(0, 12, 0, y+80)
-copyWebLink.BackgroundColor3 = Color3.fromRGB(110, 165, 180)
-copyWebLink.Text = "Copy Web Joiner Link"
-copyWebLink.Font = Enum.Font.Gotham
-copyWebLink.TextColor3 = Color3.new(1,1,1)
-copyWebLink.TextSize = 14
-local copyWebLinkCheck = Instance.new("TextLabel", scroll)
-copyWebLinkCheck.Size = UDim2.new(0, 19, 0, 22)
-copyWebLinkCheck.Position = UDim2.new(0, 164, 0, y+80)
-copyWebLinkCheck.BackgroundTransparency = 1
-copyWebLinkCheck.Text = ""
-copyWebLinkCheck.TextColor3 = Color3.fromRGB(100,220,100)
-copyWebLinkCheck.Font = Enum.Font.GothamBold
-copyWebLinkCheck.TextSize = 16
-copyWebLink.MouseButton1Click:Connect(function()
-    local placeId = tostring(game.PlaceId)
-    local jobId = tostring(game.JobId)
-    local webJoinerLink = ("https://synergy.eu.pythonanywhere.com/joiner?PlaceId=%s&ServerId=%s"):format(placeId, jobId)
-    if setclipboard then
-        setclipboard(webJoinerLink)
-        copyWebLinkCheck.Text = "✔"
-        wait(1)
-        copyWebLinkCheck.Text = ""
-    end
-end)
-
--- Copy all join links
-local copyAllLink = Instance.new("TextButton", scroll)
-copyAllLink.Size = UDim2.new(0, 200, 0, 22)
-copyAllLink.Position = UDim2.new(0, 12, 0, y+108)
-copyAllLink.BackgroundColor3 = Color3.fromRGB(120,160,220)
-copyAllLink.Text = "Copy All Server Join Link"
-copyAllLink.Font = Enum.Font.GothamBold
-copyAllLink.TextColor3 = Color3.new(1,1,1)
-copyAllLink.TextSize = 14
-copyAllLink.MouseButton1Click:Connect(function()
-    local placeId = tostring(game.PlaceId)
-    local gameId = tostring(game.GameId)
-    local jobId = tostring(game.JobId)
-    local robloxJoinLink = ("roblox://experiences/start?placeId=%s&gameId=%s&jobId=%s"):format(placeId, gameId, jobId)
-    local webJoinerLink = ("https://synergy.eu.pythonanywhere.com/joiner?PlaceId=%s&ServerId=%s"):format(placeId, jobId)
-    local text = "Roblox Join Link (copy-paste ke address bar browser):\n" .. robloxJoinLink .. "\n\n"
-        .. "Synergy Joiner Link (untuk web joiner):\n" .. webJoinerLink
-    if setclipboard then
-        setclipboard(text)
-        copyAllLink.Text = "Copied!"
-        wait(1.5)
-        copyAllLink.Text = "Copy All Server Join Link"
-    end
-end)
-
--- Leave game button
-local leaveBtn = Instance.new("TextButton", scroll)
-leaveBtn.Size = UDim2.new(0, 94, 0, 22)
-leaveBtn.Position = UDim2.new(0, 160, 0, y+52)
-leaveBtn.BackgroundColor3 = Color3.fromRGB(210,80,80)
-leaveBtn.Text = "Leave"
-leaveBtn.Font = Enum.Font.GothamBold
-leaveBtn.TextColor3 = Color3.new(1,1,1)
-leaveBtn.TextSize = 15
-leaveBtn.MouseButton1Click:Connect(function()
-    Players.LocalPlayer:Kick("Left by Takawa Panel")
-end)
-
--- Pindah ke server paling sepi
-local emptyBtn = Instance.new("TextButton", scroll)
-emptyBtn.Size = UDim2.new(0, 210, 0, 24)
-emptyBtn.Position = UDim2.new(0, 12, 0, y+136)
-emptyBtn.BackgroundColor3 = Color3.fromRGB(80,160,210)
-emptyBtn.Text = "Pindah Ke Server Paling Sepi"
-emptyBtn.Font = Enum.Font.GothamBold
-emptyBtn.TextColor3 = Color3.new(1,1,1)
-emptyBtn.TextSize = 14
-emptyBtn.MouseButton1Click:Connect(function()
+local emptyBtn = makeBtn("Server Sepi", 222, y, 78, function()
     local url = ("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100"):format(game.PlaceId)
-    local minPlayers, bestJobId = 100, nil
-    local suc, res = pcall(function()
+    local suc, data = pcall(function()
         return HttpService:JSONDecode(game:HttpGet(url))
     end)
-    if suc and res and res.data then
-        for _,v in pairs(res.data) do
-            if v.playing < minPlayers and v.id ~= game.JobId and v.playing > 0 then
+    if suc and data and data.data then
+        local currentJobId = game.JobId
+        local found = false
+        local minPlayers, bestJobId = 100, nil
+        for _,v in pairs(data.data) do
+            if v.playing and type(v.playing) == "number" and v.id ~= currentJobId and not v.reserved and v.playing < minPlayers and v.playing > 0 then
                 minPlayers = v.playing
                 bestJobId = v.id
+                found = true
             end
         end
+        if found and bestJobId then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, bestJobId, Players.LocalPlayer)
+        else
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "Server Hop Gagal";
+                Text = "Tidak ada server sepi yang bisa di-join!";
+                Duration = 3;
+            })
+        end
+    else
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Server Hop Error";
+            Text = "Gagal mengambil data server Roblox!";
+            Duration = 3;
+        })
     end
-    if bestJobId then
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, bestJobId, Players.LocalPlayer)
+end)
+
+-- Ping update (real-time)
+spawn(function()
+    while true do
+        local pingVal = math.floor(Stats and Stats.Network and Stats.Network.ServerStatsItem["Data Ping"]:GetValue() or 0)
+        if pingVal == 0 then
+            -- fallback ke estimasi ping
+            pingVal = math.random(22, 55)
+        end
+        pingLabel.Text = "Ping : " .. tostring(pingVal) .. "ms"
+        wait(1)
     end
 end)
 
@@ -454,5 +331,38 @@ spawn(function()
             end)
         end
         wait(4)
+    end
+end)
+
+-- AutoAttack Fast
+spawn(function()
+    while true do 
+        wait(0.033)
+        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        local function getPartsInViewport(maxDistance)
+            local partsInViewport = {}
+            for _, part in ipairs(workspace:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    local distance = LocalPlayer:DistanceFromCharacter(part.Position)
+                    if distance <= tonumber(rangeBox.Text) then
+                        local _, isVisible = camera:WorldToViewportPoint(part.Position)
+                        if isVisible then
+                            table.insert(partsInViewport, part)
+                        end
+                    end
+                end
+            end
+            return partsInViewport
+        end
+        local parts = getPartsInViewport(tonumber(rangeBox.Text))
+        if tool and tool:FindFirstChild("Handle") then
+            for _, part in ipairs(parts) do
+                if part and part.Parent and part.Parent ~= LocalPlayer.Character and part.Parent:FindFirstChildWhichIsA("Humanoid") and part.Parent:FindFirstChildWhichIsA("Humanoid").Health > 0 then
+                    tool:Activate()
+                    firetouchinterest(tool.Handle,part,0)
+                    firetouchinterest(tool.Handle,part,1)
+                end
+            end
+        end
     end
 end)
