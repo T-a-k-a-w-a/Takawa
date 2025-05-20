@@ -1,4 +1,4 @@
--- FiscSuite All-in-One (Full UI + Logic, No Split, No Delay Release)
+-- Fisch Suite All-in-One (Full UI + Logic, No Split, No Delay Release)
 -- GitHub Copilot Chat Assistant - 2025
 
 -- Clean Up Old
