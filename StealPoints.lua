@@ -1,3 +1,5 @@
+--// Takawa Panel V4: Full draggable, full feature, mobile ready
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
@@ -6,7 +8,7 @@ local camera = workspace.CurrentCamera
 
 -- CONFIG (in memory)
 local config = {
-    walkspeed = 18,
+    walkspeed = 19,
     range = 15,
     displayname = LocalPlayer.DisplayName,
     username = LocalPlayer.Name,
@@ -29,7 +31,7 @@ end
 loadConfig()
 
 -- GUI setup
-local PANEL_W, PANEL_H = 330, 435
+local PANEL_W, PANEL_H = 340, 470
 local gui = Instance.new("ScreenGui")
 gui.Name = "TakawaPanel"
 gui.ResetOnSpawn = false
@@ -37,16 +39,16 @@ gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local panel = Instance.new("Frame", gui)
 panel.Size = UDim2.new(0, PANEL_W, 0, PANEL_H)
-panel.Position = UDim2.new(1, -PANEL_W-16, 0, 54)
+panel.Position = UDim2.new(1, -PANEL_W-18, 0, 60)
 panel.BackgroundColor3 = Color3.fromRGB(33,36,67)
 panel.BorderSizePixel = 0
 panel.Active = true
 panel.ClipsDescendants = true
 
--- Minimized Button (☰)
+-- Minimized Button (☰) - always follows panel position
 local minimizedPanel = Instance.new("TextButton", gui)
 minimizedPanel.Size = UDim2.new(0, 40, 0, 40)
-minimizedPanel.Position = UDim2.new(1, -54, 0, 62)
+minimizedPanel.Position = UDim2.new(0, panel.Position.X.Offset + PANEL_W - 46, 0, panel.Position.Y.Offset + 8)
 minimizedPanel.BackgroundColor3 = Color3.fromRGB(90,90,110)
 minimizedPanel.Text = "☰"
 minimizedPanel.TextColor3 = Color3.new(1,1,1)
@@ -67,11 +69,11 @@ title.TextSize = 20
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.BorderSizePixel = 0
 
--- Minimize button
+-- Minimize button (on panel)
 local minimize = Instance.new("TextButton", panel)
 minimize.Size = UDim2.new(0, 38, 0, 38)
 minimize.Position = UDim2.new(1, -38, 0, 0)
-minimize.BackgroundColor3 = Color3.fromRGB(90, 90, 110)
+minimize.BackgroundColor3 = Color3.fromRGB(90,90,110)
 minimize.Text = "━"
 minimize.TextSize = 20
 minimize.TextColor3 = Color3.new(1,1,1)
@@ -84,61 +86,48 @@ scroll.Size = UDim2.new(1, 0, 1, -38)
 scroll.Position = UDim2.new(0, 0, 0, 38)
 scroll.BackgroundTransparency = 1
 scroll.BorderSizePixel = 0
-scroll.CanvasSize = UDim2.new(0, 0, 0, 900)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 1000)
 scroll.ScrollBarThickness = 7
 scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 scroll.ClipsDescendants = true
 
--- DRAG LOGIC (panel, title, minimize, minimizedPanel)
+-- DRAG LOGIC: drag seluruh area panel (bukan hanya judul/tombol)
 local UIS = game:GetService("UserInputService")
-local drag, dragInput, dragStart, startPos
-local dragTargets = {panel, title, minimize, minimizedPanel}
-for _,target in ipairs(dragTargets) do
-    target.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-            drag = true
-            dragStart = input.Position
-            if panel.Visible then
-                startPos = panel.Position
-            else
-                startPos = minimizedPanel.Position
-            end
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then drag = false end
-            end)
-        end
-    end)
-end
+local drag, dragStart, startPos
+panel.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        drag = true
+        dragStart = input.Position
+        startPos = panel.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then drag = false end
+        end)
+    end
+end)
 UIS.InputChanged:Connect(function(input)
-    if drag and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+    if drag and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local screenX = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.X or 800
         local screenY = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.Y or 600
         local delta = input.Position - dragStart
-        if panel.Visible then
-            local newX = math.clamp(startPos.X.Offset + delta.X, 0, screenX - PANEL_W)
-            local newY = math.clamp(startPos.Y.Offset + delta.Y, 0, screenY - PANEL_H)
-            panel.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
-            minimizedPanel.Position = UDim2.new(0, newX + PANEL_W - 36, 0, newY + 8)
-        else
-            local newX = math.clamp(startPos.X.Offset + delta.X, 0, screenX - 40)
-            local newY = math.clamp(startPos.Y.Offset + delta.Y, 0, screenY - 40)
-            minimizedPanel.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
-        end
+        local newX = math.clamp(startPos.X.Offset + delta.X, 0, screenX - PANEL_W)
+        local newY = math.clamp(startPos.Y.Offset + delta.Y, 0, screenY - PANEL_H)
+        panel.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
+        -- move minimizedPanel to follow panel position always
+        minimizedPanel.Position = UDim2.new(0, newX + PANEL_W - 46, 0, newY + 8)
     end
 end)
 
 minimize.MouseButton1Click:Connect(function()
     panel.Visible = false
     minimizedPanel.Visible = true
+    minimizedPanel.Position = UDim2.new(0, panel.Position.X.Offset + PANEL_W - 46, 0, panel.Position.Y.Offset + 8)
 end)
 minimizedPanel.MouseButton1Click:Connect(function()
     panel.Visible = true
     minimizedPanel.Visible = false
 end)
 
-----------------
--- UI Utility --
-----------------
+-- UI Utility
 local function Section(text, y)
     local l = Instance.new("TextLabel", scroll)
     l.Size = UDim2.new(1, -18, 0, 22)
@@ -213,13 +202,10 @@ local function InputWithOK(txt, y, val, cb)
     return box
 end
 
--------------------------
--- Panel Layout & Logic --
--------------------------
+-- Panel Layout & Functionality
 local y = 12
--- Identity Section
 Section("Identity", y)
-SubLabel("Ubah hanya visual device-mu!", y+18)
+SubLabel("Hanya visual device-mu", y+18)
 local fakeNameBox = InputWithOK("DisplayName", y+34, config.displayname, function(v) config.displayname = v; LocalPlayer.DisplayName = v end)
 local fakeUserBox = InputWithOK("Username", y+60, config.username, function(v) config.username = v; LocalPlayer.Name = v end)
 
@@ -229,7 +215,6 @@ local wsBox = InputWithOK("WalkSpeed", y+22, tostring(config.walkspeed), functio
     local num = tonumber(v)
     if num and num >= 5 and num <= 100 then config.walkspeed = num end
 end)
-
 game:GetService("RunService").Stepped:Connect(function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChildOfClass("Humanoid") then
@@ -243,7 +228,6 @@ local rangeBox = InputWithOK("Range", y+22, tostring(config.range), function(v)
     local num = tonumber(v)
     if num and num >= 1 and num <= 25 then config.range = num end
 end)
-
 -- AutoAttack Fast
 spawn(function()
     while true do 
@@ -279,7 +263,6 @@ end)
 
 y = y + 54
 Section("Server Tools", y)
--- Copy JobId
 local copyJob = Instance.new("TextButton", scroll)
 copyJob.Size = UDim2.new(0, 120, 0, 22)
 copyJob.Position = UDim2.new(0, 12, 0, y+24)
@@ -288,7 +271,6 @@ copyJob.Text = "Copy JobId"
 copyJob.Font = Enum.Font.Gotham
 copyJob.TextColor3 = Color3.new(1,1,1)
 copyJob.TextSize = 14
-
 local copyJobCheck = Instance.new("TextLabel", scroll)
 copyJobCheck.Size = UDim2.new(0, 19, 0, 22)
 copyJobCheck.Position = UDim2.new(0, 136, 0, y+24)
@@ -297,7 +279,6 @@ copyJobCheck.Text = ""
 copyJobCheck.TextColor3 = Color3.fromRGB(100,220,100)
 copyJobCheck.Font = Enum.Font.GothamBold
 copyJobCheck.TextSize = 16
-
 copyJob.MouseButton1Click:Connect(function()
     if setclipboard then
         setclipboard(game.JobId)
@@ -307,7 +288,6 @@ copyJob.MouseButton1Click:Connect(function()
     end
 end)
 
--- Join By JobId
 local joinJobBox = Instance.new("TextBox", scroll)
 joinJobBox.Size = UDim2.new(0, 100, 0, 22)
 joinJobBox.Position = UDim2.new(0, 160, 0, y+24)
@@ -317,7 +297,6 @@ joinJobBox.PlaceholderText = "Paste JobId"
 joinJobBox.TextSize = 13
 joinJobBox.Font = Enum.Font.Gotham
 joinJobBox.ClearTextOnFocus = false
-
 local joinJobBtn = Instance.new("TextButton", scroll)
 joinJobBtn.Size = UDim2.new(0, 42, 0, 22)
 joinJobBtn.Position = UDim2.new(0, 264, 0, y+24)
@@ -326,7 +305,6 @@ joinJobBtn.Text = "JOIN"
 joinJobBtn.Font = Enum.Font.GothamBold
 joinJobBtn.TextColor3 = Color3.fromRGB(255,255,255)
 joinJobBtn.TextSize = 13
-
 joinJobBtn.MouseButton1Click:Connect(function()
     local jobid = joinJobBox.Text
     if #jobid > 10 then
@@ -334,32 +312,87 @@ joinJobBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Copy Join Link
-local copyLink = Instance.new("TextButton", scroll)
-copyLink.Size = UDim2.new(0, 120, 0, 22)
-copyLink.Position = UDim2.new(0, 12, 0, y+52)
-copyLink.BackgroundColor3 = Color3.fromRGB(100,120,210)
-copyLink.Text = "Copy Join Link"
-copyLink.Font = Enum.Font.Gotham
-copyLink.TextColor3 = Color3.new(1,1,1)
-copyLink.TextSize = 14
-
-local copyLinkCheck = Instance.new("TextLabel", scroll)
-copyLinkCheck.Size = UDim2.new(0, 19, 0, 22)
-copyLinkCheck.Position = UDim2.new(0, 136, 0, y+52)
-copyLinkCheck.BackgroundTransparency = 1
-copyLinkCheck.Text = ""
-copyLinkCheck.TextColor3 = Color3.fromRGB(100,220,100)
-copyLinkCheck.Font = Enum.Font.GothamBold
-copyLinkCheck.TextSize = 16
-
-copyLink.MouseButton1Click:Connect(function()
-    local link = ("roblox://experiences/start?placeId=%s&gameId=%s&jobId=%s"):format(tostring(game.PlaceId), tostring(game.GameId), tostring(game.JobId))
+-- Copy Roblox Join Link
+local copyRbxLink = Instance.new("TextButton", scroll)
+copyRbxLink.Size = UDim2.new(0, 148, 0, 22)
+copyRbxLink.Position = UDim2.new(0, 12, 0, y+52)
+copyRbxLink.BackgroundColor3 = Color3.fromRGB(100,120,210)
+copyRbxLink.Text = "Copy Roblox Join Link"
+copyRbxLink.Font = Enum.Font.Gotham
+copyRbxLink.TextColor3 = Color3.new(1,1,1)
+copyRbxLink.TextSize = 14
+local copyRbxLinkCheck = Instance.new("TextLabel", scroll)
+copyRbxLinkCheck.Size = UDim2.new(0, 19, 0, 22)
+copyRbxLinkCheck.Position = UDim2.new(0, 164, 0, y+52)
+copyRbxLinkCheck.BackgroundTransparency = 1
+copyRbxLinkCheck.Text = ""
+copyRbxLinkCheck.TextColor3 = Color3.fromRGB(100,220,100)
+copyRbxLinkCheck.Font = Enum.Font.GothamBold
+copyRbxLinkCheck.TextSize = 16
+copyRbxLink.MouseButton1Click:Connect(function()
+    local placeId = tostring(game.PlaceId)
+    local gameId = tostring(game.GameId)
+    local jobId = tostring(game.JobId)
+    local robloxJoinLink = ("roblox://experiences/start?placeId=%s&gameId=%s&jobId=%s"):format(placeId, gameId, jobId)
     if setclipboard then
-        setclipboard(link)
-        copyLinkCheck.Text = "✔"
+        setclipboard(robloxJoinLink)
+        copyRbxLinkCheck.Text = "✔"
         wait(1)
-        copyLinkCheck.Text = ""
+        copyRbxLinkCheck.Text = ""
+    end
+end)
+
+-- Copy Synergy Joiner Link
+local copyWebLink = Instance.new("TextButton", scroll)
+copyWebLink.Size = UDim2.new(0, 148, 0, 22)
+copyWebLink.Position = UDim2.new(0, 12, 0, y+80)
+copyWebLink.BackgroundColor3 = Color3.fromRGB(110, 165, 180)
+copyWebLink.Text = "Copy Web Joiner Link"
+copyWebLink.Font = Enum.Font.Gotham
+copyWebLink.TextColor3 = Color3.new(1,1,1)
+copyWebLink.TextSize = 14
+local copyWebLinkCheck = Instance.new("TextLabel", scroll)
+copyWebLinkCheck.Size = UDim2.new(0, 19, 0, 22)
+copyWebLinkCheck.Position = UDim2.new(0, 164, 0, y+80)
+copyWebLinkCheck.BackgroundTransparency = 1
+copyWebLinkCheck.Text = ""
+copyWebLinkCheck.TextColor3 = Color3.fromRGB(100,220,100)
+copyWebLinkCheck.Font = Enum.Font.GothamBold
+copyWebLinkCheck.TextSize = 16
+copyWebLink.MouseButton1Click:Connect(function()
+    local placeId = tostring(game.PlaceId)
+    local jobId = tostring(game.JobId)
+    local webJoinerLink = ("https://synergy.eu.pythonanywhere.com/joiner?PlaceId=%s&ServerId=%s"):format(placeId, jobId)
+    if setclipboard then
+        setclipboard(webJoinerLink)
+        copyWebLinkCheck.Text = "✔"
+        wait(1)
+        copyWebLinkCheck.Text = ""
+    end
+end)
+
+-- Copy all join links
+local copyAllLink = Instance.new("TextButton", scroll)
+copyAllLink.Size = UDim2.new(0, 200, 0, 22)
+copyAllLink.Position = UDim2.new(0, 12, 0, y+108)
+copyAllLink.BackgroundColor3 = Color3.fromRGB(120,160,220)
+copyAllLink.Text = "Copy All Server Join Link"
+copyAllLink.Font = Enum.Font.GothamBold
+copyAllLink.TextColor3 = Color3.new(1,1,1)
+copyAllLink.TextSize = 14
+copyAllLink.MouseButton1Click:Connect(function()
+    local placeId = tostring(game.PlaceId)
+    local gameId = tostring(game.GameId)
+    local jobId = tostring(game.JobId)
+    local robloxJoinLink = ("roblox://experiences/start?placeId=%s&gameId=%s&jobId=%s"):format(placeId, gameId, jobId)
+    local webJoinerLink = ("https://synergy.eu.pythonanywhere.com/joiner?PlaceId=%s&ServerId=%s"):format(placeId, jobId)
+    local text = "Roblox Join Link (copy-paste ke address bar browser):\n" .. robloxJoinLink .. "\n\n"
+        .. "Synergy Joiner Link (untuk web joiner):\n" .. webJoinerLink
+    if setclipboard then
+        setclipboard(text)
+        copyAllLink.Text = "Copied!"
+        wait(1.5)
+        copyAllLink.Text = "Copy All Server Join Link"
     end
 end)
 
@@ -379,13 +412,12 @@ end)
 -- Pindah ke server paling sepi
 local emptyBtn = Instance.new("TextButton", scroll)
 emptyBtn.Size = UDim2.new(0, 210, 0, 24)
-emptyBtn.Position = UDim2.new(0, 12, 0, y+80)
+emptyBtn.Position = UDim2.new(0, 12, 0, y+136)
 emptyBtn.BackgroundColor3 = Color3.fromRGB(80,160,210)
 emptyBtn.Text = "Pindah Ke Server Paling Sepi"
 emptyBtn.Font = Enum.Font.GothamBold
 emptyBtn.TextColor3 = Color3.new(1,1,1)
 emptyBtn.TextSize = 14
-
 emptyBtn.MouseButton1Click:Connect(function()
     local url = ("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100"):format(game.PlaceId)
     local minPlayers, bestJobId = 100, nil
