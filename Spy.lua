@@ -322,3 +322,166 @@ for i,btninfo in ipairs(actionData) do
     b.MouseButton1Click:Connect(btninfo[2])
     table.insert(actionButtons, b)
 end
+--[[
+==== SimpleSpy Advanced Layout ====
+Lanjutan Part 4-8: Logic Hook Remote, Logging, Exclude/Block, Notes, Tooltip, Minimize, Error Handler, Final Touch
+By Copilot Chat Assistant
+]]
+
+-------------------- PART 4: Logic Hook Remote, Logging, Exclude/Block --------------------
+SimpleSpy = SimpleSpy or {}
+SimpleSpy.Blocked = SimpleSpy.Blocked or {}
+SimpleSpy.Excluded = SimpleSpy.Excluded or {}
+
+-- Untuk keperluan log dan sidebar
+logs = logs or {}
+logButtons = logButtons or {}
+function logRemoteAdvanced(tab, remote, data)
+    -- Block/Exclude logic
+    if SimpleSpy.Blocked and SimpleSpy.Blocked[remote] then return end
+    if SimpleSpy.Excluded and SimpleSpy.Excluded[remote] then return end
+    local argstr = ""
+    if data and type(data)=="table" then
+        for i,v in ipairs(data) do
+            argstr = argstr..(i>1 and ", " or "")..(typeof(v)=="string" and ('"'..v..'"') or tostring(v))
+        end
+    end
+    local code = ("-- [%s] %s(%s)"):format(tab, tostring(remote), argstr)
+    local logdata = {
+        text = ("[%s] %s"):format(tab, tostring(remote)),
+        remote = tostring(remote),
+        args = data,
+        code = code
+    }
+    table.insert(logs, logdata)
+    if addLogSidebar then addLogSidebar(logdata) end
+end
+
+-- HOOK ALL REMOTES
+local hookedRemotes = {}
+local function hookOne(remote)
+    if hookedRemotes[remote] then return end
+    hookedRemotes[remote]=true
+    if remote:IsA("RemoteEvent") then
+        local oldFire = remote.FireServer
+        remote.FireServer = function(self, ...)
+            logRemoteAdvanced("RemoteEvent", self, {...})
+            return oldFire(self, ...)
+        end
+    elseif remote:IsA("RemoteFunction") then
+        local oldInvoke = remote.InvokeServer
+        remote.InvokeServer = function(self, ...)
+            logRemoteAdvanced("RemoteFunction", self, {...})
+            return oldInvoke(self, ...)
+        end
+    end
+end
+
+local function scanRemotes()
+    local function scan(obj)
+        for _,v in ipairs(obj:GetDescendants()) do
+            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+                hookOne(v)
+            end
+        end
+    end
+    if game.ReplicatedStorage then scan(game.ReplicatedStorage) end
+    if game.Workspace then scan(game.Workspace) end
+    if game.StarterGui then scan(game.StarterGui) end
+end
+scanRemotes()
+if game.ReplicatedStorage then game.ReplicatedStorage.DescendantAdded:Connect(function(v)
+    if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then hookOne(v) end
+end) end
+if game.Workspace then game.Workspace.DescendantAdded:Connect(function(v)
+    if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then hookOne(v) end
+end) end
+
+-------------------- PART 5: Notes, Catatan, Tab Switch --------------------
+-- Notes/catatan via tombol Notes di TopBar
+local NotesTabBtn
+for _,obj in ipairs(TopBar:GetChildren()) do
+    if obj:IsA("TextButton") and obj.Text == "Notes" then
+        NotesTabBtn = obj
+    end
+end
+if not NotesTabBtn then
+    NotesTabBtn = Instance.new("TextButton", TopBar)
+    NotesTabBtn.Size = UDim2.new(0,70,1,0)
+    NotesTabBtn.Position = UDim2.new(0,90,0,0)
+    NotesTabBtn.Text = "Notes"
+    NotesTabBtn.Font = Enum.Font.GothamBold
+    NotesTabBtn.TextSize = 14
+    NotesTabBtn.BackgroundColor3 = Color3.fromRGB(80,80,110)
+    NotesTabBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    NotesTabBtn.AutoButtonColor = true
+end
+NotesTabBtn.MouseButton1Click:Connect(function()
+    NotesTab.Visible = not NotesTab.Visible
+    RightPanel.Visible = not NotesTab.Visible
+end)
+-- (NotesTab sudah diisi via tombol Copy Code di Part 3)
+
+-------------------- PART 6: Tooltip, Highlight, Info --------------------
+function showTooltip(msg, pos)
+    if TooltipLabel and Tooltip then
+        TooltipLabel.Text = msg
+        Tooltip.Position = pos or UDim2.new(1, -220, 1, -100)
+        Tooltip.Visible = true
+    end
+end
+function hideTooltip()
+    if Tooltip then Tooltip.Visible = false end
+end
+if actionButtons then
+    for _,b in ipairs(actionButtons) do
+        b.MouseEnter:Connect(function()
+            showTooltip(b.Text, UDim2.new(1, -220, 1, -100))
+        end)
+        b.MouseLeave:Connect(hideTooltip)
+    end
+end
+
+-------------------- PART 7: Minimize/Maximize/Close/Drag --------------------
+local minimized = false
+if MiniBtn then
+    MiniBtn.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        if minimized then
+            Main.Size = UDim2.new(0, 220, 0, 38)
+            LeftPanel.Visible = false
+            RightPanel.Visible = false
+            NotesTab.Visible = false
+        else
+            Main.Size = UDim2.new(0, 620, 0, 350)
+            LeftPanel.Visible = true
+            RightPanel.Visible = not NotesTab.Visible
+        end
+    end)
+end
+if CloseBtn then
+    CloseBtn.MouseButton1Click:Connect(function()
+        SimpleSpy:Destroy()
+    end)
+end
+
+-------------------- PART 8: Dummy Handler, Error Prevention, Final Touch --------------------
+if not setclipboard then -- Fallback: executor tanpa setclipboard
+    function setclipboard(str)
+        showTooltip("Salin manual: "..tostring(str))
+    end
+end
+
+-- Prevent error crash di executor mobile
+pcall(function() if not game:GetService("CoreGui") then warn("Tidak dapat akses CoreGui, panel hanya di PlayerGui") end end)
+
+-- Info Panel
+local Info = Instance.new("TextLabel", Main)
+Info.Size = UDim2.new(1,0,0,24)
+Info.Position = UDim2.new(0,0,1,-24)
+Info.Text = "SimpleSpy Advanced by Copilot Chat Assistant | All logic Android/PC"
+Info.BackgroundTransparency = 1
+Info.TextColor3 = Color3.fromRGB(220,220,255)
+Info.Font = Enum.Font.Gotham
+Info.TextSize = 13
+Info.TextXAlignment = Enum.TextXAlignment.Center
