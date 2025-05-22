@@ -1,195 +1,82 @@
---[[
-    Roblox Client-Side Script: Anti Kick & Name Spoofing with UI (BENAR-BENAR FUNGSI)
+Creating a Roblox script that includes features like Anti-Kick, Username Spoofing, and Name Display along with a user interface (UI) is a complex task. Below is a basic structure of what such a script might look like using Lua. Please note that certain features, such as Anti-Kick and Username Spoofing, violate Roblox’s Terms of Service and may result in bans or other penalties. The following script is provided for educational purposes only.
 
-    Catatan:
-    - Anti-kick hanya efektif untuk kick client-side (bukan dari server/admin)
-    - Spoof hanya mengubah tampilan lokal (kamu sendiri yang melihat perubahan nama)
-    - Tidak melanggar ToS jika hanya untuk edukasi/testing pribadi
-]]
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+This sample script provides a basic UI to toggle these features on and off and demonstrates how you might structure the code for achieving the desired functionality in a compliant manner.
 
--- UI Elements
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SpoofAntiKickGUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+Sample Roblox Lua Script
+-- Assuming you're running this code in a LocalScript within Roblox Studio
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 340, 0, 250)
-MainFrame.Position = UDim2.new(0.5, -170, 0.5, -125)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
+-- Create the ScreenGui
+local player = game.Players.LocalPlayer
+local screenGui = Instance.new("ScreenGui")
+local mainFrame = Instance.new("Frame")
+local toggleButton = Instance.new("TextButton")
+local minimizeButton = Instance.new("TextButton")
+local statusLabel = Instance.new("TextLabel")
+local featureToggledOn = false  -- Toggle state for features
 
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(1, 0, 0, 36)
-TitleLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 90)
-TitleLabel.TextColor3 = Color3.new(1,1,1)
-TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.TextSize = 18
-TitleLabel.Text = "Spoof Username/DisplayName & Anti-Kick"
-TitleLabel.Parent = MainFrame
+-- UI Properties
+screenGui.Parent = player:WaitForChild("PlayerGui")
+mainFrame.Size = UDim2.new(0, 300, 0, 200)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+mainFrame.BackgroundTransparency = 0.5
+mainFrame.Parent = screenGui
 
-local function makeSectionLabel(txt, ypos)
-    local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(1, -24, 0, 18)
-    l.Position = UDim2.new(0, 12, 0, ypos)
-    l.BackgroundTransparency = 1
-    l.TextColor3 = Color3.fromRGB(200,220,255)
-    l.Font = Enum.Font.Gotham
-    l.TextSize = 14
-    l.TextXAlignment = Enum.TextXAlignment.Left
-    l.Text = txt
-    l.Parent = MainFrame
-    return l
-end
+toggleButton.Size = UDim2.new(0, 100, 0, 50)
+toggleButton.Position = UDim2.new(0.5, -50, 0.5, -25)
+toggleButton.Text = "Toggle Features"
+toggleButton.Parent = mainFrame
 
--- Username spoof section
-makeSectionLabel("Spoof Username (local view):", 44)
-local UsernameTextBox = Instance.new("TextBox")
-UsernameTextBox.Size = UDim2.new(0, 180, 0, 28)
-UsernameTextBox.Position = UDim2.new(0, 14, 0, 64)
-UsernameTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-UsernameTextBox.TextColor3 = Color3.fromRGB(255,255,255)
-UsernameTextBox.PlaceholderText = "Masukkan Username Palsu"
-UsernameTextBox.Font = Enum.Font.Gotham
-UsernameTextBox.TextSize = 14
-UsernameTextBox.ClearTextOnFocus = false
-UsernameTextBox.Parent = MainFrame
+minimizeButton.Size = UDim2.new(0, 50, 0, 30)
+minimizeButton.Position = UDim2.new(1, -55, 0, 5)
+minimizeButton.Text = "-"
+minimizeButton.Parent = mainFrame
 
-local UsernameToggle = Instance.new("TextButton")
-UsernameToggle.Size = UDim2.new(0, 110, 0, 28)
-UsernameToggle.Position = UDim2.new(0, 210, 0, 64)
-UsernameToggle.BackgroundColor3 = Color3.fromRGB(180,40,40)
-UsernameToggle.Text = "OFF"
-UsernameToggle.TextColor3 = Color3.new(1,1,1)
-UsernameToggle.Font = Enum.Font.GothamBold
-UsernameToggle.TextSize = 15
-UsernameToggle.Parent = MainFrame
+statusLabel.Size = UDim2.new(1, 0, 0, 50)
+statusLabel.Position = UDim2.new(0, 0, 0, 0)
+statusLabel.Text = "Features are OFF"
+statusLabel.TextColor3 = Color3.new(1, 1, 1)
+statusLabel.Parent = mainFrame
 
--- DisplayName spoof section
-makeSectionLabel("Spoof DisplayName (local view):", 104)
-local DisplayNameTextBox = Instance.new("TextBox")
-DisplayNameTextBox.Size = UDim2.new(0, 180, 0, 28)
-DisplayNameTextBox.Position = UDim2.new(0, 14, 0, 124)
-DisplayNameTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-DisplayNameTextBox.TextColor3 = Color3.fromRGB(255,255,255)
-DisplayNameTextBox.PlaceholderText = "Masukkan DisplayName Palsu"
-DisplayNameTextBox.Font = Enum.Font.Gotham
-DisplayNameTextBox.TextSize = 14
-DisplayNameTextBox.ClearTextOnFocus = false
-DisplayNameTextBox.Parent = MainFrame
-
-local DisplayNameToggle = Instance.new("TextButton")
-DisplayNameToggle.Size = UDim2.new(0, 110, 0, 28)
-DisplayNameToggle.Position = UDim2.new(0, 210, 0, 124)
-DisplayNameToggle.BackgroundColor3 = Color3.fromRGB(180,40,40)
-DisplayNameToggle.Text = "OFF"
-DisplayNameToggle.TextColor3 = Color3.new(1,1,1)
-DisplayNameToggle.Font = Enum.Font.GothamBold
-DisplayNameToggle.TextSize = 15
-DisplayNameToggle.Parent = MainFrame
-
--- Anti Kick section
-makeSectionLabel("Anti-Kick (client-side):", 174)
-local AntiKickToggle = Instance.new("TextButton")
-AntiKickToggle.Size = UDim2.new(0, 315, 0, 32)
-AntiKickToggle.Position = UDim2.new(0, 14, 0, 194)
-AntiKickToggle.BackgroundColor3 = Color3.fromRGB(180,40,40)
-AntiKickToggle.Text = "OFF (klik untuk aktifkan)"
-AntiKickToggle.TextColor3 = Color3.new(1,1,1)
-AntiKickToggle.Font = Enum.Font.GothamBold
-AntiKickToggle.TextSize = 15
-AntiKickToggle.Parent = MainFrame
-
--- LOGIC
-local spoofUsernameActive = false
-local spoofDisplayNameActive = false
-
-local function spoofAllNameTexts()
-    -- Ganti semua TextLabel/TextBox yang sama dengan username/displayname asli jadi palsu
-    for _,desc in ipairs(game:GetDescendants()) do
-        if (desc:IsA("TextLabel") or desc:IsA("TextBox")) and desc.Text then
-            if spoofUsernameActive and UsernameTextBox.Text ~= "" then
-                if desc.Text == LocalPlayer.Name then
-                    desc.Text = UsernameTextBox.Text
-                end
-            end
-            if spoofDisplayNameActive and DisplayNameTextBox.Text ~= "" then
-                if desc.Text == LocalPlayer.DisplayName then
-                    desc.Text = DisplayNameTextBox.Text
-                end
-            end
-        end
+-- Function to toggle features
+local function toggleFeatures()
+    featureToggledOn = not featureToggledOn
+    if featureToggledOn then
+        statusLabel.Text = "Features are ON"
+        -- Implement your features here, remember to handle with care
+    else
+        statusLabel.Text = "Features are OFF"
+        -- Disable features
     end
 end
 
-UsernameToggle.MouseButton1Click:Connect(function()
-    spoofUsernameActive = not spoofUsernameActive
-    UsernameToggle.Text = spoofUsernameActive and "ON" or "OFF"
-    UsernameToggle.BackgroundColor3 = spoofUsernameActive and Color3.fromRGB(40,150,40) or Color3.fromRGB(180,40,40)
-    if spoofUsernameActive then
-        spoofAllNameTexts()
+-- Button Events
+toggleButton.MouseButton1Click:Connect(toggleFeatures)
+
+minimizeButton.MouseButton1Click:Connect(function()
+    if mainFrame.Visible then
+        mainFrame.Visible = false
     else
-        -- Optional: revert (tidak selalu bisa, karena sudah diubah)
-    end
-end)
-DisplayNameToggle.MouseButton1Click:Connect(function()
-    spoofDisplayNameActive = not spoofDisplayNameActive
-    DisplayNameToggle.Text = spoofDisplayNameActive and "ON" or "OFF"
-    DisplayNameToggle.BackgroundColor3 = spoofDisplayNameActive and Color3.fromRGB(40,150,40) or Color3.fromRGB(180,40,40)
-    if spoofDisplayNameActive then
-        spoofAllNameTexts()
+        mainFrame.Visible = true
     end
 end)
 
--- Auto spoof ulang jika ada UI baru muncul
-game.DescendantAdded:Connect(function(desc)
-    if (desc:IsA("TextLabel") or desc:IsA("TextBox")) then
-        pcall(spoofAllNameTexts)
-    end
-end)
-UsernameTextBox.FocusLost:Connect(function()
-    if spoofUsernameActive then spoofAllNameTexts() end
-end)
-DisplayNameTextBox.FocusLost:Connect(function()
-    if spoofDisplayNameActive then spoofAllNameTexts() end
-end)
+-- Anti-kick logic placeholder (not recommendable to implement)
+local function preventKick()
+    -- This is a conceptual placeholder
+    -- You cannot truly prevent kicks from the server
+end
 
--- ANTI KICK LOGIC
-local antiKickActive = false
-AntiKickToggle.MouseButton1Click:Connect(function()
-    antiKickActive = not antiKickActive
-    AntiKickToggle.Text = antiKickActive and "ON (client-side, tidak jamin block kick server)" or "OFF (klik untuk aktifkan)"
-    AntiKickToggle.BackgroundColor3 = antiKickActive and Color3.fromRGB(40,150,40) or Color3.fromRGB(180,40,40)
-    if antiKickActive then
-        -- Patch Kick
-        local mt = getrawmetatable(game)
-        if setreadonly then pcall(setreadonly, mt, false) end
-        local old = mt.__namecall
-        mt.__namecall = newcclosure(function(self, ...)
-            local method = getnamecallmethod and getnamecallmethod() or ""
-            if (method == "Kick" or tostring(method):lower():find("kick")) and self == LocalPlayer then
-                return
-            end
-            return old(self, ...)
-        end)
-        if LocalPlayer.Kick then
-            LocalPlayer.Kick = function() end
-        end
-    else
-        -- Tidak ada cara aman untuk re-enable Kick, harus rejoin game
-    end
-end)
+-- Spoofing username logic placeholder (not recommendable and against ToS)
+local function spoofUsername()
+    -- This is a conceptual placeholder
+    -- Cannot change the username effectively
+end
 
--- HOTKEY: [~] untuk hide/show
-local UIS = game:GetService("UserInputService")
-UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.Tilde or input.KeyCode == Enum.KeyCode.BackQuote then
-        ScreenGui.Enabled = not ScreenGui.Enabled
-    end
-end)
+-- Ensure UI is visible
+mainFrame.Visible = true
+Important Notes:
+Violating Terms: The functionalities such as anti-kick and username spoofing typically violate Roblox's terms of service, which can lead to player bans. It is not advisable to implement or share potentially harmful scripts.
+Learning Opportunity: The UI and logic are designed to serve as an educational resource about how UIs work in Roblox.
+Roblox Community Guidelines: Always be mindful of the community guidelines and create scripts that enhance gameplay without undermining the platform's integrity.
+This script should help you understand the structure and approach to building a UI with toggle functionality in Roblox, while emphasizing ethical considerations in scripting.
