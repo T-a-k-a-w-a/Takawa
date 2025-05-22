@@ -239,3 +239,86 @@ function clearLogs()
     LogList.CanvasSize = UDim2.new(0,0,0,0)
     if CodeBox then CodeBox.Text = "-- Remote details akan muncul di sini" end
 end
+-- Part 3: Panel Kanan, Tombol Aksi, Logic
+
+local actionButtons = {}
+local actionData = {
+    {"Copy Code", function()
+        if SimpleSpy.SelectedLog and SimpleSpy.SelectedLog.code then
+            if setclipboard then setclipboard(SimpleSpy.SelectedLog.code) end
+            -- Catat di Notes
+            local note = Instance.new("TextLabel", NotesTab)
+            note.Text = SimpleSpy.SelectedLog.code
+            note.Size = UDim2.new(1,-10,0,28)
+            note.TextColor3 = Color3.fromRGB(255,255,200)
+            note.BackgroundColor3 = Color3.fromRGB(48,48,64)
+            note.Font = Enum.Font.Gotham
+            note.TextSize = 14
+            note.TextXAlignment = Enum.TextXAlignment.Left
+        end
+    end},
+    {"Copy Remote", function()
+        if SimpleSpy.SelectedLog and SimpleSpy.SelectedLog.remote then
+            if setclipboard then setclipboard(SimpleSpy.SelectedLog.remote) end
+        end
+    end},
+    {"Run Code", function()
+        -- Dummy: Hanya tampil notif
+        if SimpleSpy.SelectedLog then
+            CodeBox.Text = CodeBox.Text .. "\n-- [Dijalankan] (dummy)"
+        end
+    end},
+    {"Get Script", function()
+        CodeBox.Text = "-- Get Script tidak didukung di executor ini!"
+    end},
+    {"Function Info", function()
+        CodeBox.Text = "-- Function Info tidak didukung di executor ini!"
+    end},
+    {"Decompile", function()
+        CodeBox.Text = "-- Decompile tidak didukung di executor ini!"
+    end},
+    {"Block", function()
+        if SimpleSpy.SelectedLog then
+            SimpleSpy.Blocked = SimpleSpy.Blocked or {}
+            SimpleSpy.Blocked[SimpleSpy.SelectedLog.remote] = true
+            clearLogs()
+        end
+    end},
+    {"Exclude", function()
+        if SimpleSpy.SelectedLog then
+            SimpleSpy.Excluded = SimpleSpy.Excluded or {}
+            SimpleSpy.Excluded[SimpleSpy.SelectedLog.remote] = true
+            clearLogs()
+        end
+    end},
+    {"Auto Block", function()
+        CodeBox.Text = "-- AutoBlock dummy (aktifkan di logic hook remote)"
+    end},
+    {"Clear", function()
+        clearLogs()
+    end}
+}
+
+-- Panel tombol bawah code box
+local BtnPanel = Instance.new("Frame", RightPanel)
+BtnPanel.Size = UDim2.new(1,0,0,40)
+BtnPanel.Position = UDim2.new(0,0,0.33,0)
+BtnPanel.BackgroundTransparency = 1
+
+local UIAction = Instance.new("UIListLayout", BtnPanel)
+UIAction.FillDirection = Enum.FillDirection.Horizontal
+UIAction.Padding = UDim.new(0,6)
+UIAction.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+for i,btninfo in ipairs(actionData) do
+    local b = Instance.new("TextButton", BtnPanel)
+    b.Size = UDim2.new(0,98,0,30)
+    b.Text = btninfo[1]
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 13
+    b.BackgroundColor3 = Color3.fromRGB(44,44,80)
+    b.TextColor3 = Color3.fromRGB(255,255,255)
+    b.AutoButtonColor = true
+    b.MouseButton1Click:Connect(btninfo[2])
+    table.insert(actionButtons, b)
+end
