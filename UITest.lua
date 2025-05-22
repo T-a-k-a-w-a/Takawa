@@ -1,4 +1,4 @@
--- Fisch Utility Panel (Tabbed, Scroll, Transparan, All Fitur, UI Dijamin Muncul)
+-- Fisch Utility Panel - All Logic & UI in One File
 -- by Copilot Chat Assistant
 
 -- Clean up jika sudah ada
@@ -20,10 +20,10 @@ Panel.Parent = pgui
 -- Panel Transparan
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.new(0, 420, 0, 340)
-Main.Position = UDim2.new(0.08, 0, 0.22, 0)
+Main.Size = UDim2.new(0, 440, 0, 350)
+Main.Position = UDim2.new(0.08, 0, 0.2, 0)
 Main.BackgroundColor3 = Color3.fromRGB(24,30,45)
-Main.BackgroundTransparency = 0.2
+Main.BackgroundTransparency = 0.19
 Main.Active = true
 Main.Draggable = true
 Main.BorderSizePixel = 0
@@ -35,7 +35,7 @@ Main.ClipsDescendants = true
 local TopBar = Instance.new("Frame", Main)
 TopBar.Size = UDim2.new(1, 0, 0, 38)
 TopBar.BackgroundColor3 = Color3.fromRGB(41, 120, 255)
-TopBar.BackgroundTransparency = 0.1
+TopBar.BackgroundTransparency = 0.10
 TopBar.BorderSizePixel = 0
 Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
 
@@ -53,7 +53,7 @@ local CloseBtn = Instance.new("TextButton", TopBar)
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(1, -38, 0, 4)
 CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-CloseBtn.BackgroundTransparency = 0.05
+CloseBtn.BackgroundTransparency = 0.1
 CloseBtn.Text = "X"
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.TextSize = 16
@@ -65,7 +65,7 @@ local MinBtn = Instance.new("TextButton", TopBar)
 MinBtn.Size = UDim2.new(0, 30, 0, 30)
 MinBtn.Position = UDim2.new(1, -74, 0, 4)
 MinBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
-MinBtn.BackgroundTransparency = 0.18
+MinBtn.BackgroundTransparency = 0.13
 MinBtn.Text = "-"
 MinBtn.Font = Enum.Font.GothamBold
 MinBtn.TextSize = 22
@@ -82,16 +82,14 @@ TabBar.BackgroundTransparency = 1
 TabBar.BorderSizePixel = 0
 
 local tabNames = {"Proteksi", "Spoof Data", "Movement", "Lainnya"}
-local Tabs = {}
-local CurrentTab = nil
+local Tabs, TabFrames, CurrentTab = {}, {}, nil
 
--- Tab Button
 for i, name in ipairs(tabNames) do
     local btn = Instance.new("TextButton", TabBar)
-    btn.Size = UDim2.new(0, 100, 1, -8)
-    btn.Position = UDim2.new(0, 12 + (i-1)*107, 0, 4)
+    btn.Size = UDim2.new(0, 105, 1, -8)
+    btn.Position = UDim2.new(0, 16 + (i-1)*112, 0, 4)
     btn.BackgroundColor3 = Color3.fromRGB(45, 55, 80)
-    btn.BackgroundTransparency = 0.15
+    btn.BackgroundTransparency = 0.13
     btn.TextColor3 = Color3.fromRGB(200,220,255)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 15
@@ -100,9 +98,6 @@ for i, name in ipairs(tabNames) do
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
     Tabs[name] = btn
 end
-
--- Tab Content Frames (Scrollable V+H)
-local TabFrames = {}
 for i, name in ipairs(tabNames) do
     local frame = Instance.new("ScrollingFrame", Main)
     frame.Name = "Tab_"..name
@@ -111,7 +106,7 @@ for i, name in ipairs(tabNames) do
     frame.BackgroundTransparency = 1
     frame.BorderSizePixel = 0
     frame.ScrollBarThickness = 8
-    frame.CanvasSize = UDim2.new(0, 800, 0, 900)
+    frame.CanvasSize = UDim2.new(0, 840, 0, 900)
     frame.HorizontalScrollBarInset = Enum.ScrollBarInset.ScrollBar
     frame.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
     frame.AutomaticCanvasSize = Enum.AutomaticSize.XY
@@ -123,8 +118,6 @@ for i, name in ipairs(tabNames) do
     uil.HorizontalAlignment = Enum.HorizontalAlignment.Left
     TabFrames[name] = frame
 end
-
--- Tab Switch Logic
 function SetTab(name)
     for n, btn in pairs(Tabs) do
         btn.BackgroundColor3 = (n == name) and Color3.fromRGB(41, 120, 255) or Color3.fromRGB(45, 55, 80)
@@ -135,11 +128,8 @@ function SetTab(name)
     end
     CurrentTab = name
 end
-
 for n, btn in pairs(Tabs) do
-    btn.MouseButton1Click:Connect(function()
-        SetTab(n)
-    end)
+    btn.MouseButton1Click:Connect(function() SetTab(n) end)
 end
 SetTab(tabNames[1])
 
@@ -156,10 +146,9 @@ function MakeLabel(tab, txt)
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.Parent = TabFrames[tab]
 end
-
 function MakeButton(tab, txt, callback)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 200, 0, 32)
+    b.Size = UDim2.new(0, 180, 0, 32)
     b.BackgroundColor3 = Color3.fromRGB(41, 120, 255)
     b.BackgroundTransparency = 0.14
     b.TextColor3 = Color3.new(1,1,1)
@@ -173,14 +162,13 @@ function MakeButton(tab, txt, callback)
     b.MouseButton1Click:Connect(callback)
     return b
 end
-
 function MakeBox(tab, txt, default, callback)
     local f = Instance.new("Frame")
-    f.Size = UDim2.new(0, 270, 0, 32)
+    f.Size = UDim2.new(0, 290, 0, 32)
     f.BackgroundTransparency = 1
     f.Parent = TabFrames[tab]
     local t = Instance.new("TextLabel", f)
-    t.Size = UDim2.new(0.48,0,1,0)
+    t.Size = UDim2.new(0.49,0,1,0)
     t.BackgroundTransparency = 1
     t.Font = Enum.Font.Gotham
     t.TextSize = 14
@@ -189,10 +177,10 @@ function MakeBox(tab, txt, default, callback)
     t.Text = txt
     t.TextXAlignment = Enum.TextXAlignment.Left
     local box = Instance.new("TextBox", f)
-    box.Size = UDim2.new(0.52,0,1,0)
-    box.Position = UDim2.new(0.48,0,0,0)
+    box.Size = UDim2.new(0.41,0,1,0)
+    box.Position = UDim2.new(0.49,0,0,0)
     box.BackgroundColor3 = Color3.fromRGB(60,60,90)
-    box.BackgroundTransparency = 0.22
+    box.BackgroundTransparency = 0.20
     box.TextColor3 = Color3.fromRGB(255,255,255)
     box.TextSize = 14
     box.Font = Enum.Font.Gotham
@@ -202,8 +190,8 @@ function MakeBox(tab, txt, default, callback)
     box.ClipsDescendants = true
     Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
     local applyBtn = Instance.new("TextButton", f)
-    applyBtn.Size = UDim2.new(0, 46, 0, 28)
-    applyBtn.Position = UDim2.new(1, 12, 0, 2)
+    applyBtn.Size = UDim2.new(0, 44, 0, 28)
+    applyBtn.Position = UDim2.new(1, 10, 0, 2)
     applyBtn.BackgroundColor3 = Color3.fromRGB(41, 120, 255)
     applyBtn.BackgroundTransparency = 0.15
     applyBtn.Text = "OK"
@@ -217,10 +205,9 @@ function MakeBox(tab, txt, default, callback)
     end)
     return box
 end
-
 function MakeToggle(tab, txt, state, callback)
     local f = Instance.new("Frame")
-    f.Size = UDim2.new(0, 200, 0, 32)
+    f.Size = UDim2.new(0, 180, 0, 32)
     f.BackgroundTransparency = 1
     f.Parent = TabFrames[tab]
     local t = Instance.new("TextLabel", f)
@@ -235,7 +222,7 @@ function MakeToggle(tab, txt, state, callback)
     btn.Size = UDim2.new(0.34,0,1,0)
     btn.Position = UDim2.new(0.66,0,0,0)
     btn.BackgroundColor3 = state and Color3.fromRGB(41,190,90) or Color3.fromRGB(60,60,90)
-    btn.BackgroundTransparency = 0.17
+    btn.BackgroundTransparency = 0.19
     btn.Text = state and "ON" or "OFF"
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 14
@@ -252,17 +239,41 @@ function MakeToggle(tab, txt, state, callback)
 end
 
 -- State
-local spoofName, spoofUser, spoofLvl, spoofMoney = plr.DisplayName, plr.Name, 1, 0
+local spoofName, spoofUser, spoofLvl, spoofMoney, spoofStreak = plr.DisplayName, plr.Name, 1, 0, 0
 local noclip, float, invis = false, false, false
 
 -- LOGIC
-local function blockFishingChat(on)
-    if not on then return end
-    for _,v in pairs(getgc(true)) do
-        if type(v) == "function" and islclosure(v) then
-            local info = debug.getinfo(v)
-            if info.name and (info.name:lower():find("catch") or info.name:lower():find("fish") or info.name:lower():find("announce")) then
-                hookfunction(v, function(...) return end)
+local function spoofStreakFunc(streak)
+    spoofStreak = streak
+    for _,v in pairs(game:GetDescendants()) do
+        if v:IsA("TextLabel") and v.Text:lower():find("streak") then
+            v.Text = "Streak: "..tostring(spoofStreak)
+        end
+    end
+end
+local function setInvisibleAll(state)
+    invis = state
+    -- Character
+    if plr.Character then
+        for _,v in pairs(plr.Character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.Transparency = state and 1 or 0
+                if v:FindFirstChildOfClass("Decal") then v:FindFirstChildOfClass("Decal").Transparency = state and 1 or 0 end
+            elseif v:IsA("Accessory") and v:FindFirstChild("Handle") then
+                v.Handle.Transparency = state and 1 or 0
+            elseif v:IsA("TextLabel") or v:IsA("BillboardGui") then
+                v.Visible = not state
+            end
+        end
+    end
+    -- Rod, Bobber, Line, Tag, Label, etc di Workspace
+    for _,v in pairs(workspace:GetDescendants()) do
+        local n = v.Name:lower()
+        if n:find("rod") or n:find("bobber") or n:find("line") or n:find("string") or n:find("fishing") or n:find("tag") or n:find("label") or n:find("level") or n:find("streak") or n:find("passive") then
+            if v:IsA("BasePart") then
+                v.Transparency = state and 1 or 0
+            elseif v:IsA("TextLabel") or v:IsA("BillboardGui") then
+                v.Visible = not state
             end
         end
     end
@@ -280,21 +291,6 @@ local function hideStreak()
     for _,v in pairs(game:GetDescendants()) do
         if v:IsA("TextLabel") and v.Text:lower():find("streak") then
             v.Visible = false
-        end
-    end
-end
-local function setInvisible(state)
-    invis = state
-    if plr.Character then
-        for _,v in pairs(plr.Character:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.Transparency = state and 1 or 0
-                if v:FindFirstChildOfClass("Decal") then
-                    v:FindFirstChildOfClass("Decal").Transparency = state and 1 or 0
-                end
-            elseif v:IsA("Accessory") and v:FindFirstChild("Handle") then
-                v.Handle.Transparency = state and 1 or 0
-            end
         end
     end
 end
@@ -316,6 +312,71 @@ local function spoofLevelMoney(level, money)
             if v.Text:lower():find("level") then v.Text = "Level: "..spoofLvl end
             if v.Text:lower():find("money") or v.Text:lower():find("cash") or v.Text:lower():find("uang") then
                 v.Text = "Money: "..spoofMoney
+            end
+        end
+    end
+end
+-- Anti Chat & Spoof Nama di Chat
+local ikan_keywords = {"legendary","mythic","exotic","mutasi","mutation","catfish","whiptail","trout","salmon","bass","shark","fish","ikan"}
+local function containsIkanPesan(teks)
+    local t = teks:lower()
+    for _,w in ipairs(ikan_keywords) do
+        if t:find(w) then return true end
+    end
+    return false
+end
+local function blockFishingChat()
+    for _,obj in ipairs(getgc(true)) do
+        if type(obj) == "function" and islclosure(obj) then
+            local info = debug.getinfo(obj)
+            if info.name and (info.name:lower():find("chat") or info.name:lower():find("system") or info.name:lower():find("announce") or info.name:lower():find("catch")) then
+                hookfunction(obj, function(...)
+                    local args = {...}
+                    for i,v in ipairs(args) do
+                        if type(v)=="string" and (v:find(plr.Name) or v:find(plr.DisplayName) or containsIkanPesan(v)) then
+                            return -- block
+                        end
+                        if type(v)=="string" and (v:find(plr.Name) or v:find(plr.DisplayName)) then
+                            args[i] = v:gsub(plr.Name, spoofName):gsub(plr.DisplayName, spoofName)
+                        end
+                    end
+                    return obj(unpack(args))
+                end)
+            end
+        end
+    end
+    -- Hook RemoteEvent/RemoteFunction
+    for _,r in pairs(game:GetDescendants()) do
+        if r:IsA("RemoteEvent") or r:IsA("RemoteFunction") then
+            local old
+            if r:IsA("RemoteEvent") then
+                old = r.FireServer
+                r.FireServer = function(self, ...)
+                    local args = {...}
+                    for i,v in ipairs(args) do
+                        if type(v)=="string" and (v:find(plr.Name) or v:find(plr.DisplayName) or containsIkanPesan(v)) then
+                            return -- block
+                        end
+                        if type(v)=="string" and (v:find(plr.Name) or v:find(plr.DisplayName)) then
+                            args[i] = v:gsub(plr.Name, spoofName):gsub(plr.DisplayName, spoofName)
+                        end
+                    end
+                    return old(self, unpack(args))
+                end
+            elseif r:IsA("RemoteFunction") then
+                old = r.InvokeServer
+                r.InvokeServer = function(self, ...)
+                    local args = {...}
+                    for i,v in ipairs(args) do
+                        if type(v)=="string" and (v:find(plr.Name) or v:find(plr.DisplayName) or containsIkanPesan(v)) then
+                            return -- block
+                        end
+                        if type(v)=="string" and (v:find(plr.Name) or v:find(plr.DisplayName)) then
+                            args[i] = v:gsub(plr.Name, spoofName):gsub(plr.DisplayName, spoofName)
+                        end
+                    end
+                    return old(self, unpack(args))
+                end
             end
         end
     end
@@ -348,25 +409,22 @@ for _,p in ipairs(game.Players:GetPlayers()) do
 end
 
 -- Build Tab UI
--- Proteksi
-MakeLabel("Proteksi", "Fitur perlindungan/anti staff & chat")
+MakeLabel("Proteksi", "Fitur perlindungan chat & anti staff")
 MakeToggle("Proteksi", "Anti Chat Nama/Ikan", false, blockFishingChat)
 MakeButton("Proteksi", "Hide Streak", hideStreak)
-MakeToggle("Proteksi", "Invisible", false, setInvisible)
+MakeToggle("Proteksi", "Invisible (all)", false, setInvisibleAll)
 
--- Spoof Data
-MakeLabel("Spoof Data", "Spoof data nama/username/level/uang")
+MakeLabel("Spoof Data", "Spoof data nama/username/level/uang/streak")
 MakeBox("Spoof Data", "Spoof Nama", plr.DisplayName, function(txt) spoofNameFunc(txt, spoofUser) end)
 MakeBox("Spoof Data", "Spoof Username", plr.Name, function(txt) spoofNameFunc(spoofName, txt) end)
 MakeBox("Spoof Data", "Spoof Level", "1", function(txt) spoofLevelMoney(txt, spoofMoney) end)
 MakeBox("Spoof Data", "Spoof Uang", "0", function(txt) spoofLevelMoney(spoofLvl, txt) end)
+MakeBox("Spoof Data", "Spoof Streak", "0", function(txt) spoofStreakFunc(txt) end)
 
--- Movement
 MakeLabel("Movement", "Fitur movement & physic")
 MakeToggle("Movement", "NoClip", false, function(state) noclip = state end)
 MakeToggle("Movement", "Float (Terbang)", false, function(state) float = state end)
 
--- Lainnya
 MakeLabel("Lainnya", "Deteksi Staff/Moderator berjalan otomatis")
 MakeLabel("Lainnya", "Panel by Copilot Chat Assistant")
 
@@ -376,12 +434,11 @@ MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     for _,t in pairs(TabFrames) do t.Visible = not minimized and (CurrentTab == t.Name:sub(5)) end
     TabBar.Visible = not minimized
-    Main.Size = minimized and UDim2.new(0, 180, 0, 52) or UDim2.new(0, 420, 0, 340)
+    Main.Size = minimized and UDim2.new(0, 180, 0, 54) or UDim2.new(0, 440, 0, 350)
 end)
 CloseBtn.MouseButton1Click:Connect(function()
     Panel.Enabled = false
 end)
-
 -- Hotkey toggle (misal: "~" di keyboard)
 local UIS = game:GetService("UserInputService")
 UIS.InputBegan:Connect(function(input, gp)
