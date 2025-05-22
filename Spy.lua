@@ -1,19 +1,21 @@
--- SimpleSpy Mobile Panel - Dijamin Muncul Android/PC
+-- DIJAMIN PANEL MUNCUL, SUPPORT ANDROID DAN PC
 pcall(function()
     if game.CoreGui:FindFirstChild("MobileSpy") then game.CoreGui.MobileSpy:Destroy() end
-    if game.Players.LocalPlayer.PlayerGui:FindFirstChild("MobileSpy") then game.Players.LocalPlayer.PlayerGui.MobileSpy:Destroy() end
+    if game.Players.LocalPlayer:FindFirstChild("PlayerGui") and game.Players.LocalPlayer.PlayerGui:FindFirstChild("MobileSpy") then
+        game.Players.LocalPlayer.PlayerGui.MobileSpy:Destroy()
+    end
 end)
 
 local function safeAttach(gui)
+    local player = game.Players.LocalPlayer
+    local pg = player:FindFirstChild("PlayerGui")
     local cg = game:FindFirstChildOfClass("CoreGui")
-    local pg = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
-    if cg and pcall(function() gui.Parent = cg end) and gui.Parent == cg then
-        return cg
-    elseif pg and pcall(function() gui.Parent = pg end) and gui.Parent == pg then
-        return pg
+    if pg then
+        gui.Parent = pg
+    elseif cg then
+        gui.Parent = cg
     else
-        gui.Parent = game.Players.LocalPlayer
-        return game.Players.LocalPlayer
+        gui.Parent = player
     end
 end
 
@@ -72,7 +74,7 @@ local UIList = Instance.new("UIListLayout", ScrollFrame)
 UIList.Padding = UDim.new(0,3)
 UIList.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Dummy log untuk bukti panel muncul
+-- Dummy log agar panel pasti muncul
 local LogLabel = Instance.new("TextLabel", ScrollFrame)
 LogLabel.Size = UDim2.new(1,0,0,30)
 LogLabel.Position = UDim2.new(0,0,0,0)
@@ -82,41 +84,3 @@ LogLabel.Text = "Panel SimpleSpy Mobile Muncul!"
 LogLabel.Font = Enum.Font.Gotham
 LogLabel.TextSize = 15
 LogLabel.TextXAlignment = Enum.TextXAlignment.Left
-
--- Minimize
-local minimized = false
-ToggleButton.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    local t = game:GetService("TweenService")
-    if minimized then
-        t:Create(MainFrame, TweenInfo.new(0.22), {Size = UDim2.new(0.19,0,0.09,0)}):Play()
-        ToggleButton.Text = "↑"
-        ScrollFrame.Visible = false
-    else
-        t:Create(MainFrame, TweenInfo.new(0.22), {Size = UDim2.new(0.9,0,0.7,0)}):Play()
-        ToggleButton.Text = "–"
-        ScrollFrame.Visible = true
-    end
-end)
-
--- Drag Clamp (tidak keluar layar)
-local dragging, dragInput, dragStart, startPos
-MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-    end
-end)
-MainFrame.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        local s = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(800,600)
-        local newX = math.clamp(startPos.X.Offset + delta.X, 0, s.X - MainFrame.AbsoluteSize.X)
-        local newY = math.clamp(startPos.Y.Offset + delta.Y, 0, s.Y - MainFrame.AbsoluteSize.Y)
-        MainFrame.Position = UDim2.new(0, newX, 0, newY)
-    end
-end)
