@@ -1,51 +1,281 @@
--- WindUI Custom: Fisch Script (UI PASTI MUNCUL + LOGIC SIAP)
+-- Fisch Utility Panel (Tabbed, Scroll, Transparan, All Fitur, UI Dijamin Muncul)
 -- by Copilot Chat Assistant
 
--- 1. Load WindUI (auto attach, tanpa watermark/key)
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/WindUI.lua"))()
-local Gui = WindUI:Create("Fisch Premium Panel", "by T-a-k-a-w-a", 0, false)
+-- Clean up jika sudah ada
+pcall(function()
+    local pgui = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+    if pgui and pgui:FindFirstChild("FischPanel") then
+        pgui.FischPanel:Destroy()
+    end
+end)
 
--- 2. Utility
-local plr = game:GetService("Players").LocalPlayer
-local mouse = plr:GetMouse()
-local run = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
-local Players = game:GetService("Players")
+local plr = game.Players.LocalPlayer
+local pgui = plr:WaitForChild("PlayerGui")
+local Panel = Instance.new("ScreenGui")
+Panel.Name = "FischPanel"
+Panel.ResetOnSpawn = false
+Panel.IgnoreGuiInset = true
+Panel.Parent = pgui
+
+-- Panel Transparan
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 420, 0, 340)
+Main.Position = UDim2.new(0.08, 0, 0.22, 0)
+Main.BackgroundColor3 = Color3.fromRGB(24,30,45)
+Main.BackgroundTransparency = 0.2
+Main.Active = true
+Main.Draggable = true
+Main.BorderSizePixel = 0
+Main.Parent = Panel
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
+Main.ClipsDescendants = true
+
+-- TopBar (judul, minimize, close)
+local TopBar = Instance.new("Frame", Main)
+TopBar.Size = UDim2.new(1, 0, 0, 38)
+TopBar.BackgroundColor3 = Color3.fromRGB(41, 120, 255)
+TopBar.BackgroundTransparency = 0.1
+TopBar.BorderSizePixel = 0
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
+
+local Title = Instance.new("TextLabel", TopBar)
+Title.Size = UDim2.new(1, -90, 1, 0)
+Title.Position = UDim2.new(0, 14, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Fisch Utility Panel"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 20
+Title.TextColor3 = Color3.new(1,1,1)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+local CloseBtn = Instance.new("TextButton", TopBar)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -38, 0, 4)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+CloseBtn.BackgroundTransparency = 0.05
+CloseBtn.Text = "X"
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 16
+CloseBtn.TextColor3 = Color3.new(1,1,1)
+CloseBtn.AutoButtonColor = true
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 7)
+
+local MinBtn = Instance.new("TextButton", TopBar)
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -74, 0, 4)
+MinBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
+MinBtn.BackgroundTransparency = 0.18
+MinBtn.Text = "-"
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 22
+MinBtn.TextColor3 = Color3.new(1,1,1)
+MinBtn.AutoButtonColor = true
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 7)
+
+-- Tab Bar
+local TabBar = Instance.new("Frame", Main)
+TabBar.Name = "TabBar"
+TabBar.Size = UDim2.new(1, 0, 0, 34)
+TabBar.Position = UDim2.new(0, 0, 0, 38)
+TabBar.BackgroundTransparency = 1
+TabBar.BorderSizePixel = 0
+
+local tabNames = {"Proteksi", "Spoof Data", "Movement", "Lainnya"}
+local Tabs = {}
+local CurrentTab = nil
+
+-- Tab Button
+for i, name in ipairs(tabNames) do
+    local btn = Instance.new("TextButton", TabBar)
+    btn.Size = UDim2.new(0, 100, 1, -8)
+    btn.Position = UDim2.new(0, 12 + (i-1)*107, 0, 4)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 55, 80)
+    btn.BackgroundTransparency = 0.15
+    btn.TextColor3 = Color3.fromRGB(200,220,255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 15
+    btn.Text = name
+    btn.AutoButtonColor = true
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    Tabs[name] = btn
+end
+
+-- Tab Content Frames (Scrollable V+H)
+local TabFrames = {}
+for i, name in ipairs(tabNames) do
+    local frame = Instance.new("ScrollingFrame", Main)
+    frame.Name = "Tab_"..name
+    frame.Position = UDim2.new(0, 0, 0, 72)
+    frame.Size = UDim2.new(1, 0, 1, -76)
+    frame.BackgroundTransparency = 1
+    frame.BorderSizePixel = 0
+    frame.ScrollBarThickness = 8
+    frame.CanvasSize = UDim2.new(0, 800, 0, 900)
+    frame.HorizontalScrollBarInset = Enum.ScrollBarInset.ScrollBar
+    frame.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
+    frame.AutomaticCanvasSize = Enum.AutomaticSize.XY
+    frame.Visible = false
+    frame.ClipsDescendants = true
+    local uil = Instance.new("UIListLayout", frame)
+    uil.Padding = UDim.new(0, 9)
+    uil.SortOrder = Enum.SortOrder.LayoutOrder
+    uil.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    TabFrames[name] = frame
+end
+
+-- Tab Switch Logic
+function SetTab(name)
+    for n, btn in pairs(Tabs) do
+        btn.BackgroundColor3 = (n == name) and Color3.fromRGB(41, 120, 255) or Color3.fromRGB(45, 55, 80)
+        btn.TextColor3 = (n == name) and Color3.fromRGB(255,255,255) or Color3.fromRGB(200,220,255)
+    end
+    for n, frame in pairs(TabFrames) do
+        frame.Visible = (n == name)
+    end
+    CurrentTab = name
+end
+
+for n, btn in pairs(Tabs) do
+    btn.MouseButton1Click:Connect(function()
+        SetTab(n)
+    end)
+end
+SetTab(tabNames[1])
+
+-- UI Utility
+function MakeLabel(tab, txt)
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1, -20, 0, 24)
+    l.BackgroundTransparency = 1
+    l.Font = Enum.Font.Gotham
+    l.TextSize = 15
+    l.TextWrapped = true
+    l.Text = txt
+    l.TextColor3 = Color3.fromRGB(200,215,255)
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Parent = TabFrames[tab]
+end
+
+function MakeButton(tab, txt, callback)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0, 200, 0, 32)
+    b.BackgroundColor3 = Color3.fromRGB(41, 120, 255)
+    b.BackgroundTransparency = 0.14
+    b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 15
+    b.Text = txt
+    b.TextWrapped = true
+    b.AutoButtonColor = true
+    b.Parent = TabFrames[tab]
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 7)
+    b.MouseButton1Click:Connect(callback)
+    return b
+end
+
+function MakeBox(tab, txt, default, callback)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(0, 270, 0, 32)
+    f.BackgroundTransparency = 1
+    f.Parent = TabFrames[tab]
+    local t = Instance.new("TextLabel", f)
+    t.Size = UDim2.new(0.48,0,1,0)
+    t.BackgroundTransparency = 1
+    t.Font = Enum.Font.Gotham
+    t.TextSize = 14
+    t.TextColor3 = Color3.fromRGB(255,220,180)
+    t.TextWrapped = true
+    t.Text = txt
+    t.TextXAlignment = Enum.TextXAlignment.Left
+    local box = Instance.new("TextBox", f)
+    box.Size = UDim2.new(0.52,0,1,0)
+    box.Position = UDim2.new(0.48,0,0,0)
+    box.BackgroundColor3 = Color3.fromRGB(60,60,90)
+    box.BackgroundTransparency = 0.22
+    box.TextColor3 = Color3.fromRGB(255,255,255)
+    box.TextSize = 14
+    box.Font = Enum.Font.Gotham
+    box.PlaceholderText = txt
+    box.Text = default or ""
+    box.TextWrapped = false
+    box.ClipsDescendants = true
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
+    local applyBtn = Instance.new("TextButton", f)
+    applyBtn.Size = UDim2.new(0, 46, 0, 28)
+    applyBtn.Position = UDim2.new(1, 12, 0, 2)
+    applyBtn.BackgroundColor3 = Color3.fromRGB(41, 120, 255)
+    applyBtn.BackgroundTransparency = 0.15
+    applyBtn.Text = "OK"
+    applyBtn.Font = Enum.Font.GothamBold
+    applyBtn.TextSize = 13
+    applyBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    applyBtn.AutoButtonColor = true
+    Instance.new("UICorner", applyBtn).CornerRadius = UDim.new(0, 6)
+    applyBtn.MouseButton1Click:Connect(function()
+        callback(box.Text)
+    end)
+    return box
+end
+
+function MakeToggle(tab, txt, state, callback)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(0, 200, 0, 32)
+    f.BackgroundTransparency = 1
+    f.Parent = TabFrames[tab]
+    local t = Instance.new("TextLabel", f)
+    t.Size = UDim2.new(0.62,0,1,0)
+    t.BackgroundTransparency = 1
+    t.Font = Enum.Font.Gotham
+    t.TextSize = 14
+    t.TextColor3 = Color3.fromRGB(220,220,255)
+    t.Text = txt
+    t.TextXAlignment = Enum.TextXAlignment.Left
+    local btn = Instance.new("TextButton", f)
+    btn.Size = UDim2.new(0.34,0,1,0)
+    btn.Position = UDim2.new(0.66,0,0,0)
+    btn.BackgroundColor3 = state and Color3.fromRGB(41,190,90) or Color3.fromRGB(60,60,90)
+    btn.BackgroundTransparency = 0.17
+    btn.Text = state and "ON" or "OFF"
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.AutoButtonColor = true
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = state and "ON" or "OFF"
+        btn.BackgroundColor3 = state and Color3.fromRGB(41,190,90) or Color3.fromRGB(60,60,90)
+        callback(state)
+    end)
+    callback(state)
+    return btn
+end
+
+-- State
 local spoofName, spoofUser, spoofLvl, spoofMoney = plr.DisplayName, plr.Name, 1, 0
 local noclip, float, invis = false, false, false
 
--- 3. LOGIC FITUR
-
--- [A] Anti Chat Nama/Ikan (block chat broadcast hasil pancingan)
-local function blockFishingChat()
-    local hooked = false
+-- LOGIC
+local function blockFishingChat(on)
+    if not on then return end
     for _,v in pairs(getgc(true)) do
         if type(v) == "function" and islclosure(v) then
             local info = debug.getinfo(v)
-            -- Cek function chat hasil pancing, contoh: sendCatchToChat, announce, dsb
             if info.name and (info.name:lower():find("catch") or info.name:lower():find("fish") or info.name:lower():find("announce")) then
-                if not hooked then
-                    hookfunction(v, function(...) return end)
-                    hooked = true
-                end
+                hookfunction(v, function(...) return end)
             end
         end
     end
 end
-
--- [B] Spoof Nama & Username
-local function spoofNameFunc(name, username)
-    spoofName = name ~= "" and name or plr.DisplayName
-    spoofUser = username ~= "" and username or plr.Name
-    -- Ubah visual leaderboard/GUI
+local function spoofNameFunc(nama, user)
+    spoofName = (nama and nama~="") and nama or plr.DisplayName
+    spoofUser = (user and user~="") and user or plr.Name
     for _,v in pairs(game:GetDescendants()) do
         if (v:IsA("TextLabel") or v:IsA("TextBox")) and v.Text then
             v.Text = v.Text:gsub(plr.DisplayName, spoofName):gsub(plr.Name, spoofUser)
         end
     end
 end
-
--- [C] Hide Streak
 local function hideStreak()
     for _,v in pairs(game:GetDescendants()) do
         if v:IsA("TextLabel") and v.Text:lower():find("streak") then
@@ -53,8 +283,6 @@ local function hideStreak()
         end
     end
 end
-
--- [D] Invisible
 local function setInvisible(state)
     invis = state
     if plr.Character then
@@ -70,9 +298,7 @@ local function setInvisible(state)
         end
     end
 end
-
--- [E] NoClip & Float (On/Off)
-run.Stepped:Connect(function()
+game:GetService("RunService").Stepped:Connect(function()
     if noclip and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
         for _,v in pairs(plr.Character:GetDescendants()) do
             if v:IsA("BasePart") then v.CanCollide = false end
@@ -82,12 +308,9 @@ run.Stepped:Connect(function()
         plr.Character.HumanoidRootPart.Velocity = Vector3.new(0,20,0)
     end
 end)
-
--- [F] Spoof Level & Uang
 local function spoofLevelMoney(level, money)
     spoofLvl = tonumber(level) or spoofLvl
     spoofMoney = tonumber(money) or spoofMoney
-    -- Edit di UI
     for _,v in pairs(game:GetDescendants()) do
         if v:IsA("TextLabel") then
             if v.Text:lower():find("level") then v.Text = "Level: "..spoofLvl end
@@ -97,8 +320,6 @@ local function spoofLevelMoney(level, money)
         end
     end
 end
-
--- [G] Deteksi Moderator / Staff
 local MOD_LIST = {"mod","staff","admin","manager","dev","owner"}
 local function checkStaff(p)
     local n = p.Name:lower()
@@ -109,50 +330,63 @@ local function checkStaff(p)
     return false
 end
 local function notifyStaff(name)
-    StarterGui:SetCore("SendNotification", {
+    game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "!! STAFF/MODERATOR ALERT !!",
         Text = name.." MASUK SERVER!\nSembunyi atau keluar sekarang!",
         Duration = 9
     })
 end
-Players.PlayerAdded:Connect(function(p)
+game.Players.PlayerAdded:Connect(function(p)
     if checkStaff(p) then
         notifyStaff(p.DisplayName or p.Name)
     end
 end)
-for _,p in ipairs(Players:GetPlayers()) do
+for _,p in ipairs(game.Players:GetPlayers()) do
     if p ~= plr and checkStaff(p) then
         notifyStaff(p.DisplayName or p.Name)
     end
 end
 
--- 4. PANEL UI WINDUI (UI SELALU MUNCUL)
+-- Build Tab UI
+-- Proteksi
+MakeLabel("Proteksi", "Fitur perlindungan/anti staff & chat")
+MakeToggle("Proteksi", "Anti Chat Nama/Ikan", false, blockFishingChat)
+MakeButton("Proteksi", "Hide Streak", hideStreak)
+MakeToggle("Proteksi", "Invisible", false, setInvisible)
 
-local mainTab = Gui:Tab("Main")
-mainTab:Section("Proteksi & Spoof")
+-- Spoof Data
+MakeLabel("Spoof Data", "Spoof data nama/username/level/uang")
+MakeBox("Spoof Data", "Spoof Nama", plr.DisplayName, function(txt) spoofNameFunc(txt, spoofUser) end)
+MakeBox("Spoof Data", "Spoof Username", plr.Name, function(txt) spoofNameFunc(spoofName, txt) end)
+MakeBox("Spoof Data", "Spoof Level", "1", function(txt) spoofLevelMoney(txt, spoofMoney) end)
+MakeBox("Spoof Data", "Spoof Uang", "0", function(txt) spoofLevelMoney(spoofLvl, txt) end)
 
-mainTab:Toggle("Anti Chat Nama/Ikan", false, function(state)
-    if state then blockFishingChat() end
-end)
-mainTab:Button("Hide Streak", hideStreak)
-mainTab:Toggle("Invisible", false, setInvisible)
-mainTab:Toggle("NoClip", false, function(state) noclip = state end)
-mainTab:Toggle("Float (Terbang)", false, function(state) float = state end)
+-- Movement
+MakeLabel("Movement", "Fitur movement & physic")
+MakeToggle("Movement", "NoClip", false, function(state) noclip = state end)
+MakeToggle("Movement", "Float (Terbang)", false, function(state) float = state end)
 
-mainTab:Section("Spoof Data")
-mainTab:Box("Spoof Nama", function(txt)
-    spoofNameFunc(txt, spoofUser)
-end)
-mainTab:Box("Spoof Username", function(txt)
-    spoofNameFunc(spoofName, txt)
-end)
-mainTab:Box("Spoof Level", function(txt)
-    spoofLevelMoney(txt, spoofMoney)
-end)
-mainTab:Box("Spoof Uang", function(txt)
-    spoofLevelMoney(spoofLvl, txt)
-end)
-mainTab:Label("Deteksi Moderator/Staff: AKTIF OTOMATIS")
-mainTab:Label("Panel WindUI | Custom by Copilot Chat Assistant")
+-- Lainnya
+MakeLabel("Lainnya", "Deteksi Staff/Moderator berjalan otomatis")
+MakeLabel("Lainnya", "Panel by Copilot Chat Assistant")
 
--- UI dijamin selalu muncul, tidak ada watermark/key, semua logic aktif
+-- Minimize/Unminimize
+local minimized = false
+MinBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    for _,t in pairs(TabFrames) do t.Visible = not minimized and (CurrentTab == t.Name:sub(5)) end
+    TabBar.Visible = not minimized
+    Main.Size = minimized and UDim2.new(0, 180, 0, 52) or UDim2.new(0, 420, 0, 340)
+end)
+CloseBtn.MouseButton1Click:Connect(function()
+    Panel.Enabled = false
+end)
+
+-- Hotkey toggle (misal: "~" di keyboard)
+local UIS = game:GetService("UserInputService")
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.Tilde or input.KeyCode == Enum.KeyCode.BackQuote then
+        Panel.Enabled = not Panel.Enabled
+    end
+end)
