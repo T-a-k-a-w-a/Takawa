@@ -157,3 +157,85 @@ TooltipLabel.TextXAlignment = Enum.TextXAlignment.Left
 TooltipLabel.TextYAlignment = Enum.TextYAlignment.Top
 
 -- Tab logic, minimize, dsb akan dilanjutkan di part 2
+-- Part 2: Log List, Select, Highlight, Search Bar
+
+-- === SEARCH BAR ===
+local SearchBar = Instance.new("TextBox", TopBar)
+SearchBar.Name = "SearchBar"
+SearchBar.Size = UDim2.new(0, 200, 1, 0)
+SearchBar.Position = UDim2.new(0, 220, 0, 0)
+SearchBar.Text = ""
+SearchBar.PlaceholderText = "Cari remote..."
+SearchBar.Font = Enum.Font.Gotham
+SearchBar.TextSize = 14
+SearchBar.BackgroundColor3 = Color3.fromRGB(220,220,255)
+SearchBar.TextColor3 = Color3.fromRGB(36,36,38)
+SearchBar.ClearTextOnFocus = false
+SearchBar.Visible = true
+
+-- === LOG STATE ===
+local logs = {}        -- semua remote logs
+local logButtons = {}  -- button di panel kiri, untuk highlight
+local logSelected = nil
+
+-- === ADD LOG TO SIDEBAR ===
+function addLogSidebar(logdata)
+    -- logdata = {text, remote, args, code}
+    local btn = Instance.new("TextButton", LogList)
+    btn.Size = UDim2.new(1,-10,0,28)
+    btn.BackgroundColor3 = Color3.fromRGB(60,60,90)
+    btn.TextColor3 = Color3.fromRGB(255,255,220)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.Text = logdata.text
+    btn.AutoButtonColor = false
+
+    -- Highlight on select
+    btn.MouseButton1Click:Connect(function()
+        if logSelected then
+            logSelected.BackgroundColor3 = Color3.fromRGB(60,60,90)
+        end
+        logSelected = btn
+        btn.BackgroundColor3 = Color3.fromRGB(41,120,255)
+        -- Tampilkan detail di code box dan tombol aksi (isi logic di Part 3)
+        if CodeBox then
+            CodeBox.Text = logdata.code or "-- Tidak ada code"
+            CodeBox.TextColor3 = Color3.fromRGB(255,255,255)
+        end
+        -- Simpan remote ke state untuk tombol aksi
+        SimpleSpy.SelectedLog = logdata
+    end)
+    -- Hover
+    btn.MouseEnter:Connect(function()
+        if btn ~= logSelected then btn.BackgroundColor3 = Color3.fromRGB(80,120,160) end
+    end)
+    btn.MouseLeave:Connect(function()
+        if btn ~= logSelected then btn.BackgroundColor3 = Color3.fromRGB(60,60,90) end
+    end)
+    table.insert(logButtons, btn)
+    -- Scroll otomatis ke bawah
+    LogList.CanvasSize = UDim2.new(0,0,0,#logButtons*30+10)
+end
+
+-- === FILTER BY SEARCHBAR ===
+SearchBar:GetPropertyChangedSignal("Text"):Connect(function()
+    local query = SearchBar.Text:lower()
+    for i,btn in ipairs(logButtons) do
+        if logs[i] and (logs[i].text:lower():find(query) or (logs[i].remote and tostring(logs[i].remote):lower():find(query))) then
+            btn.Visible = true
+        else
+            btn.Visible = false
+        end
+    end
+end)
+
+-- === CLEAR LOGS ===
+function clearLogs()
+    for _,btn in ipairs(logButtons) do
+        btn:Destroy()
+    end
+    logButtons = {}
+    logs = {}
+    LogList.CanvasSize = UDim2.new(0,0,0,0)
+    if CodeBox then CodeBox.Text = "-- Remote details akan muncul di sini" end
+end
