@@ -1,9 +1,4 @@
-Creating a Roblox script that includes features like Anti-Kick, Username Spoofing, and Name Display along with a user interface (UI) is a complex task. Below is a basic structure of what such a script might look like using Lua. Please note that certain features, such as Anti-Kick and Username Spoofing, violate Roblox’s Terms of Service and may result in bans or other penalties. The following script is provided for educational purposes only.
 
-This sample script provides a basic UI to toggle these features on and off and demonstrates how you might structure the code for achieving the desired functionality in a compliant manner.
-
-Sample Roblox Lua Script
--- Assuming you're running this code in a LocalScript within Roblox Studio
 
 -- Create the ScreenGui
 local player = game.Players.LocalPlayer
