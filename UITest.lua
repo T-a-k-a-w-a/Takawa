@@ -1,6 +1,6 @@
--- Fisch Utility Panel - Full All-In-One by Copilot Chat Assistant
+-- Fisch Utility Panel - Clean Stable Version by Copilot Chat Assistant
 
--- CLEANUP
+-- CLEANUP PANEL
 pcall(function()
     local pgui = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
     if pgui and pgui:FindFirstChild("FischPanel") then
@@ -19,10 +19,10 @@ Panel.Parent = pgui
 -- === UI BASE ===
 local Main = Instance.new("Frame")
 Main.Name = "Main"
-Main.Size = UDim2.new(0, 460, 0, 370)
-Main.Position = UDim2.new(0.08, 0, 0.2, 0)
+Main.Size = UDim2.new(0, 470, 0, 410)
+Main.Position = UDim2.new(0.08, 0, 0.22, 0)
 Main.BackgroundColor3 = Color3.fromRGB(24,30,45)
-Main.BackgroundTransparency = 0.22
+Main.BackgroundTransparency = 0.21
 Main.Active = true
 Main.Draggable = true
 Main.BorderSizePixel = 0
@@ -33,7 +33,7 @@ Main.ClipsDescendants = true
 local TopBar = Instance.new("Frame", Main)
 TopBar.Size = UDim2.new(1, 0, 0, 38)
 TopBar.BackgroundColor3 = Color3.fromRGB(41, 120, 255)
-TopBar.BackgroundTransparency = 0.11
+TopBar.BackgroundTransparency = 0.09
 TopBar.BorderSizePixel = 0
 Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
 
@@ -71,8 +71,10 @@ MinBtn.TextColor3 = Color3.new(1,1,1)
 MinBtn.AutoButtonColor = true
 Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 7)
 
+-- Tab Bar
 local tabNames = {"Proteksi", "Spoof Data", "Movement", "Lainnya", "Remote Finder"}
-local Tabs, TabFrames, CurrentTab = {}, {}, nil
+local Tabs, TabFrames = {}, {}
+local CurrentTab = tabNames[1]
 
 local TabBar = Instance.new("Frame", Main)
 TabBar.Name = "TabBar"
@@ -103,11 +105,11 @@ for i, name in ipairs(tabNames) do
     frame.BackgroundTransparency = 1
     frame.BorderSizePixel = 0
     frame.ScrollBarThickness = 8
-    frame.CanvasSize = UDim2.new(0, 1000, 0, 1100)
+    frame.CanvasSize = UDim2.new(0, 1000, 0, 1000)
     frame.HorizontalScrollBarInset = Enum.ScrollBarInset.ScrollBar
     frame.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
     frame.AutomaticCanvasSize = Enum.AutomaticSize.XY
-    frame.Visible = false
+    frame.Visible = (name == CurrentTab)
     frame.ClipsDescendants = true
     local uil = Instance.new("UIListLayout", frame)
     uil.Padding = UDim.new(0, 9)
@@ -128,8 +130,8 @@ end
 for n, btn in pairs(Tabs) do
     btn.MouseButton1Click:Connect(function() SetTab(n) end)
 end
-SetTab(tabNames[1])
 
+-- UI Components
 function MakeLabel(tab, txt)
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(1, -20, 0, 24)
@@ -234,7 +236,7 @@ function MakeToggle(tab, txt, state, callback)
     return btn
 end
 
--- === STATE & LOGIC ===
+-- === LOGIC ===
 local spoofName, spoofUser, spoofLvl, spoofMoney, spoofStreak = plr.DisplayName, plr.Name, 1, 0, 0
 local noclip, float, invis = false, false, false
 
@@ -307,7 +309,7 @@ local function spoofLevelMoney(level, money)
     end
 end
 
--- ---[ ANTI CHAT SYSTEM + REMOTE SCANNER ]---
+-- ANTI CHAT SYSTEM + REMOTE FINDER
 local ikan_keywords = {"legendary","mythic","exotic","mutasi","mutation","catfish","whiptail","trout","salmon","bass","shark","fish","ikan"}
 local function containsIkanPesan(teks)
     local t = teks:lower()
@@ -360,9 +362,9 @@ local function blockFishingChat()
     end
 end
 
--- ---[ REMOTE FINDER TAB ]---
+-- REMOTE FINDER
 local remoteLogTab = TabFrames["Remote Finder"]
-MakeLabel("Remote Finder", "RemoteEvent/RemoteFunction yang mengandung chat ditemukan:")
+MakeLabel("Remote Finder", "RemoteEvent/RemoteFunction chat/rod/mutasi ditemukan:")
 local remoteList = Instance.new("TextLabel", remoteLogTab)
 remoteList.Size = UDim2.new(1, -20, 0, 350)
 remoteList.BackgroundTransparency = 1
@@ -398,7 +400,7 @@ spawn(function()
     while wait(5) do scanRemotes() end
 end)
 
--- ---[ HIJACK MUTASI & FISH RESULT & KRAKEN ROD STAT ]---
+-- HIJACK MUTASI, FISH RESULT, KRAKEN ROD STAT PATCH
 function hijackMutasiAndFishing()
     for _,obj in ipairs(game:GetService("ReplicatedStorage"):GetChildren()) do
         -- Mutasi Rod Kraken
@@ -439,7 +441,6 @@ function hijackMutasiAndFishing()
         end
     end
 end
--- Auto stat visual update (Kraken Rod)
 game.DescendantAdded:Connect(function(d)
     if d:IsA("TextLabel") and d.Text and d.Text:lower():find("kraken rod") then
         local parent = d.Parent
@@ -453,7 +454,7 @@ game.DescendantAdded:Connect(function(d)
     end
 end)
 
--- ---[ ANTI KICK ALL-IN-ONE ]---
+-- ANTI KICK
 local oldKick = nil
 if plr.Kick then
     oldKick = plr.Kick
@@ -465,23 +466,22 @@ local oldNamecall = mt.__namecall
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod and getnamecallmethod() or ""
     if (method == "Kick" or tostring(method):lower():find("kick")) and self == plr then
-        return -- block
+        return
     end
     return oldNamecall(self, ...)
 end)
--- Block Destroy/Remove Character
 if plr.Character then
     plr.Character.Destroy = function() end
     plr.Character.Remove = function() end
 end
 
--- ---[ STAFF ALERT ]---
+-- STAFF ALERT
 local MOD_LIST = {"mod","staff","admin","manager","dev","owner"}
 local function checkStaff(p)
     local n = p.Name:lower()
     local d = (p.DisplayName and p.DisplayName:lower()) or ""
     for _,w in ipairs(MOD_LIST) do
-        if n:find(w) or d:find(w) then return true end
+       (w) then return true end
     end
     return false
 end
@@ -503,7 +503,7 @@ for _,p in ipairs(game.Players:GetPlayers()) do
     end
 end
 
--- === FINAL: BUILD UI ===
+-- === BUILD UI ===
 MakeLabel("Proteksi", "Anti chat hasil pancing, anti staff, anti kick")
 MakeToggle("Proteksi", "Anti Chat System", false, blockFishingChat)
 MakeButton("Proteksi", "Hide Streak", hideStreak)
@@ -528,9 +528,15 @@ MakeLabel("Lainnya", "Panel by Copilot Chat Assistant")
 local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
-    for _,t in pairs(TabFrames) do t.Visible = not minimized and (CurrentTab == t.Name:sub(5)) end
-    TabBar.Visible = not minimized
-    Main.Size = minimized and UDim2.new(0, 180, 0, 54) or UDim2.new(0, 460, 0, 370)
+    if minimized then
+        Main.Size = UDim2.new(0, 180, 0, 54)
+        for _,t in pairs(TabFrames) do t.Visible = false end
+        TabBar.Visible = false
+    else
+        Main.Size = UDim2.new(0, 470, 0, 410)
+        TabBar.Visible = true
+        SetTab(CurrentTab)
+    end
 end)
 CloseBtn.MouseButton1Click:Connect(function()
     Panel.Enabled = false
@@ -543,11 +549,9 @@ UIS.InputBegan:Connect(function(input, gp)
     end
 end)
 
--- Aktifkan auto anti-chat, anti-kick, stat patch, mutasi patch, remote finder
+-- Aktifkan patch logic
 blockFishingChat()
 hijackMutasiAndFishing()
-
--- Biar Kraken Rod stat patch selalu up to date
 spawn(function()
     while true do
         pcall(function()
