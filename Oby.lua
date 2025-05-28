@@ -1,4 +1,4 @@
--- Panel SpinWheel UGC & Money (by Copilot Chat Assistant)
+-- Panel SpinWheel Hadiah Spesifik (by Copilot Chat Assistant)
 
 local plr = game.Players.LocalPlayer
 local guiName = "SpinWheelPanel"
@@ -9,10 +9,10 @@ gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 320, 0, 190)
-frame.Position = UDim2.new(0.5, -160, 0.2, 0)
+frame.Size = UDim2.new(0, 330, 0, 220)
+frame.Position = UDim2.new(0.5, -165, 0.22, 0)
 frame.BackgroundColor3 = Color3.fromRGB(25,30,50)
-frame.BackgroundTransparency = 0.13
+frame.BackgroundTransparency = 0.12
 frame.Active = true
 frame.Draggable = true
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 13)
@@ -35,6 +35,7 @@ minBtn.TextSize = 22
 minBtn.TextColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 8)
 
+-- Minimize logic
 local minimized = false
 local childrenHide = {}
 for _,c in pairs(frame:GetChildren()) do
@@ -45,7 +46,7 @@ end
 minBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     for _,c in ipairs(childrenHide) do c.Visible = not minimized end
-    frame.Size = minimized and UDim2.new(0, 110, 0, 44) or UDim2.new(0, 320, 0, 190)
+    frame.Size = minimized and UDim2.new(0, 110, 0, 44) or UDim2.new(0, 330, 0, 220)
     minBtn.Text = minimized and "+" or "-"
 end)
 
@@ -72,8 +73,9 @@ end
 
 section("Spin Result Hack:", 42)
 
+-- Tombol-tombol hadiah
 local btnUGC = Instance.new("TextButton", frame)
-btnUGC.Size = UDim2.new(0, 134, 0, 32)
+btnUGC.Size = UDim2.new(0, 90, 0, 32)
 btnUGC.Position = UDim2.new(0, 18, 0, 68)
 btnUGC.BackgroundColor3 = Color3.fromRGB(40,130,220)
 btnUGC.Text = "100% UGC"
@@ -82,22 +84,32 @@ btnUGC.TextSize = 15
 btnUGC.TextColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", btnUGC).CornerRadius = UDim.new(0, 8)
 
+local btnCarpet = Instance.new("TextButton", frame)
+btnCarpet.Size = UDim2.new(0, 90, 0, 32)
+btnCarpet.Position = UDim2.new(0, 123, 0, 68)
+btnCarpet.BackgroundColor3 = Color3.fromRGB(200,130,60)
+btnCarpet.Text = "Karpet Terbang"
+btnCarpet.Font = Enum.Font.GothamBold
+btnCarpet.TextSize = 15
+btnCarpet.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", btnCarpet).CornerRadius = UDim.new(0, 8)
+
 local btnMoney = Instance.new("TextButton", frame)
-btnMoney.Size = UDim2.new(0, 134, 0, 32)
-btnMoney.Position = UDim2.new(0, 168, 0, 68)
+btnMoney.Size = UDim2.new(0, 90, 0, 32)
+btnMoney.Position = UDim2.new(0, 228, 0, 68)
 btnMoney.BackgroundColor3 = Color3.fromRGB(44,200,80)
-btnMoney.Text = "100% 10.000 Money"
+btnMoney.Text = "10.000 Money"
 btnMoney.Font = Enum.Font.GothamBold
 btnMoney.TextSize = 15
 btnMoney.TextColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", btnMoney).CornerRadius = UDim.new(0, 8)
 
 -- Auto Spin
-section("Auto Spin:", 114)
+section("Auto Spin:", 116)
 local autoSpin = false
 local autoBtn = Instance.new("TextButton", frame)
-autoBtn.Size = UDim2.new(0, 134, 0, 32)
-autoBtn.Position = UDim2.new(0, 18, 0, 140)
+autoBtn.Size = UDim2.new(0, 110, 0, 32)
+autoBtn.Position = UDim2.new(0, 18, 0, 142)
 autoBtn.BackgroundColor3 = Color3.fromRGB(200,80,60)
 autoBtn.Text = "Auto Spin: OFF"
 autoBtn.Font = Enum.Font.GothamBold
@@ -107,14 +119,16 @@ Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 8)
 
 local dropDownBox = Instance.new("TextBox", frame)
 dropDownBox.Size = UDim2.new(0, 84, 0, 32)
-dropDownBox.Position = UDim2.new(0, 170, 0, 140)
+dropDownBox.Position = UDim2.new(0, 140, 0, 142)
 dropDownBox.BackgroundColor3 = Color3.fromRGB(60,60,90)
 dropDownBox.TextColor3 = Color3.new(1,1,1)
 dropDownBox.Font = Enum.Font.Gotham
 dropDownBox.TextSize = 14
-dropDownBox.PlaceholderText = "Nomor Hasil"
-dropDownBox.Text = "1" -- default UGC
+dropDownBox.PlaceholderText = "Nomor Hadiah"
+dropDownBox.Text = "5" -- default UGC
 Instance.new("UICorner", dropDownBox).CornerRadius = UDim.new(0,8)
+
+section("Keterangan: UGC = 5, Karpet Terbang = 2, Money = 7", 184)
 
 -- REMOTES
 local Rep = game:GetService("ReplicatedStorage")
@@ -124,7 +138,12 @@ local SpinComplete = Rep:WaitForChild("Remotes"):WaitForChild("SpinComplete")
 btnUGC.MouseButton1Click:Connect(function()
     SpinWheel:FireServer()
     wait(0.23)
-    SpinComplete:FireServer(1)
+    SpinComplete:FireServer(5)
+end)
+btnCarpet.MouseButton1Click:Connect(function()
+    SpinWheel:FireServer()
+    wait(0.23)
+    SpinComplete:FireServer(2)
 end)
 btnMoney.MouseButton1Click:Connect(function()
     SpinWheel:FireServer()
@@ -141,7 +160,7 @@ end)
 spawn(function()
     while true do
         if autoSpin then
-            local nomor = tonumber(dropDownBox.Text) or 1
+            local nomor = tonumber(dropDownBox.Text) or 5
             pcall(function()
                 SpinWheel:FireServer()
             end)
