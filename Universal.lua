@@ -3,7 +3,6 @@ local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
@@ -14,10 +13,11 @@ local Humanoid = Character:WaitForChild("Humanoid")
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UltimateCheats"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = CoreGui
+ScreenGui.Enabled = true -- Pastikan UI aktif
+ScreenGui.Parent = LocalPlayer.PlayerGui -- ✅ Gunakan PlayerGui sebagai parent
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 300, 0, 1000)
+MainFrame.Size = UDim2.new(0, 300, 0, 1200)
 MainFrame.Position = UDim2.new(0.75, 0, 0.05, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 0
@@ -340,6 +340,121 @@ AntiNoclipButton.MouseButton1Click:Connect(function()
     end
 end)
 
+-- 🎬 Macro Recorder
+local MacroRecording = false
+local RecordedActions = {}
+
+local MacroFrame = Instance.new("Frame")
+MacroFrame.Size = UDim2.new(1, 0, 0, 80)
+MacroFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MacroFrame.Parent = MainFrame
+
+local MacroLabel = Instance.new("TextLabel")
+MacroLabel.Size = UDim2.new(1, 0, 0, 20)
+MacroLabel.Text = "Macro Recorder"
+MacroLabel.Font = Enum.Font.GothamBold
+MacroLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+MacroLabel.Parent = MacroFrame
+
+local StartMacroButton = Instance.new("TextButton")
+StartMacroButton.Size = UDim2.new(0.4, 0, 0, 20)
+StartMacroButton.Position = UDim2.new(0, 5, 0, 25)
+StartMacroButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+StartMacroButton.Text = "Mulai Rekam"
+StartMacroButton.Font = Enum.Font.GothamBold
+StartMacroButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+StartMacroButton.Parent = MacroFrame
+
+local StopMacroButton = Instance.new("TextButton")
+StopMacroButton.Size = UDim2.new(0.4, 0, 0, 20)
+StopMacroButton.Position = UDim2.new(0.5, 5, 0, 25)
+StopMacroButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+StopMacroButton.Text = "Berhenti Rekam"
+StopMacroButton.Font = Enum.Font.GothamBold
+StopMacroButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+StopMacroButton.Parent = MacroFrame
+
+local PlayMacroButton = Instance.new("TextButton")
+PlayMacroButton.Size = UDim2.new(1, -10, 0, 20)
+PlayMacroButton.Position = UDim2.new(0, 5, 0, 50)
+PlayMacroButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+PlayMacroButton.Text = "Putar Makro"
+PlayMacroButton.Font = Enum.Font.GothamBold
+PlayMacroButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+PlayMacroButton.Parent = MacroFrame
+
+StartMacroButton.MouseButton1Click:Connect(function()
+    RecordedActions = {}
+    MacroRecording = true
+    StartMacroButton.Text = "Rekam Aktif"
+    UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            table.insert(RecordedActions, {input.KeyCode, "Press"})
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            table.insert(RecordedActions, {input.KeyCode, "Release"})
+        end
+    end)
+end)
+
+StopMacroButton.MouseButton1Click:Connect(function()
+    MacroRecording = false
+    StartMacroButton.Text = "Mulai Rekam"
+end)
+
+PlayMacroButton.MouseButton1Click:Connect(function()
+    for _, action in ipairs(RecordedActions) do
+        if action[2] == "Press" then
+            keypress(action[1].Value)
+        elseif action[2] == "Release" then
+            keyrelease(action[1].Value)
+        end
+        wait(0.1)
+    end
+end)
+
+-- 🔥 Kick Player
+local KickFrame = Instance.new("Frame")
+KickFrame.Size = UDim2.new(1, 0, 0, 100)
+KickFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+KickFrame.Parent = MainFrame
+
+local KickLabel = Instance.new("TextLabel")
+KickLabel.Size = UDim2.new(1, 0, 0, 20)
+KickLabel.Text = "Kick Player"
+KickLabel.Font = Enum.Font.GothamBold
+KickLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+KickLabel.Parent = KickFrame
+
+local KickDropdown = Instance.new("ScrollingFrame")
+KickDropdown.Size = UDim2.new(1, -10, 0, 70)
+KickDropdown.Position = UDim2.new(0, 5, 0, 25)
+KickDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+KickDropdown.Parent = KickFrame
+
+for _, Player in pairs(Players:GetPlayers()) do
+    if Player ~= LocalPlayer then
+        local PlayerButton = Instance.new("TextButton")
+        PlayerButton.Size = UDim2.new(1, 0, 0, 20)
+        PlayerButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        PlayerButton.Text = Player.Name
+        PlayerButton.Font = Enum.Font.GothamBold
+        PlayerButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+        PlayerButton.Parent = KickDropdown
+        PlayerButton.MouseButton1Click:Connect(function()
+            -- 🚫 Metode Kick Player (tergantung game)
+            pcall(function()
+                local args = {
+                    [1] = Player.Name
+                }
+                game:GetService("ReplicatedStorage").KickPlayer:FireServer(unpack(args)) -- Contoh (tergantung game)
+            end)
+        end)
+    end
+end
+
 -- 📱 Fungsi Minimize UI
 MinimizeButton.MouseButton1Click:Connect(function()
     for _, Child in pairs(MainFrame:GetChildren()) do
@@ -361,7 +476,7 @@ MainFrame.InputBegan:Connect(function(input)
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
             end
-        end
+        end)
     end
 end)
 
