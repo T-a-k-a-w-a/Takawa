@@ -98,3 +98,51 @@ Rayfield:Notify({
    Duration = 6.5,
    Image = 4483362458,
 })
+
+local Section = PlayerTab:CreateSection("Section Example")
+
+Section:Set("Section Example") -- Updating a Section
+
+local Divider = PlayerTab:CreateDivider()
+
+Divider:Set(false) -- Updating a Divider Whether the divider's visibility is to be set to true or false.
+
+Rayfield:SetVisibility(false) -- Settings the Visibility
+
+Rayfield:IsVisible() -- Getting the Visibility 
+
+Rayfield:Destroy() -- Destroying the Interface 
+
+-- Available Theme --
+Theme Name - ThemeIdentifier
+
+Default - Default
+Amber Glow - AmberGlow
+Amethyst - Amethyst
+Bloom - Bloom
+Dark Blue - DarkBlue
+Green - Green
+Light - Light
+Ocean - Ocean
+Serenity - Serenity
+
+Button:Set("Button Example") -- Updating a Button
+
+Toggle:Set(false) -- Updating a Toggle
+
+Slider:Set(10) -- The new slider integer value
+
+Input:Set("New Text") -- The new input text value
+
+Dropdown:Refresh({"New Option 1","New Option 2"}) -- The new list of options
+
+Dropdown:Set({"Option 2"}) -- "Option 2" will now be selected
+
+local Label = Tab:CreateLabel("Label Example", 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
+
+Label:Set("Label Example", 4483362458, Color3.fromRGB(255, 255, 255), false) -- Title, Icon, Color, IgnoreTheme
+
+local Paragraph = Tab:CreateParagraph({Title = "Paragraph Example", Content = "Paragraph Example"})
+
+Paragraph:Set({Title = "Paragraph Example", Content = "Paragraph Example"})
+
