@@ -117,8 +117,8 @@ game:GetService("RunService").Heartbeat:Connect(function()
                 local power = tool:FindFirstChild("Power")
                 local speed = tool:FindFirstChild("Speed")
                 local cooldown = tool:FindFirstChild("CoolDown")
-                if power then power.Value = 1000 end
-                if speed then speed.Value = 0.3 end
+                if power then power.Value = 10 end
+                if speed then speed.Value = 0.0 end
                 if cooldown then cooldown.Value = 1 end
             end)
         else
