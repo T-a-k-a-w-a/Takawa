@@ -1,5 +1,5 @@
 --================================================================--
---         SKRIP DIPERBARUI OLEH PARTNER CODING (V3)                --
+--         SKRIP DIPERBARUI OLEH PARTNER CODING (V4)                --
 --================================================================--
 
 -- Muat Library Arrayfield
@@ -7,7 +7,7 @@ local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/UI-I
 
 -- Variabel Global untuk Fitur
 local autoSellEnabled = false
-local instantMineEnabled = false -- Variabel baru untuk Instant Mine
+local instantMineEnabled = false
 local flyEnabled = false
 local flySpeed = 50 
 local locations = {}
@@ -97,20 +97,20 @@ game:GetService("RunService").Heartbeat:Connect(function()
         bodyGyro.CFrame = camera.CFrame
     end
 
-    -- Logika untuk Instant Mine (sesuai idemu)
+    -- Logika untuk Instant Mine
     if instantMineEnabled then
         local char = Player.Character
         if char then
-            local tool = char:FindFirstChildOfClass("Tool") -- Dapatkan alat yang sedang dipegang
+            local tool = char:FindFirstChildOfClass("Tool")
             if tool then
-                -- Cari properti dan paksa nilainya
+                -- Cari properti dan paksa nilainya dengan nilai yang sudah disesuaikan
                 local power = tool:FindFirstChild("Power")
                 local speed = tool:FindFirstChild("Speed")
                 local cooldown = tool:FindFirstChild("CoolDown")
 
-                if power then power.Value = 5000 end
-                if speed then speed.Value = 0 end
-                if cooldown then cooldown.Value = 0 end
+                if power then power.Value = 1000 end   -- Diubah ke 1000
+                if speed then speed.Value = 0.3 end   -- Diubah ke 0.3
+                if cooldown then cooldown.Value = 1 end -- Diubah ke 1
             end
         end
     end
@@ -124,12 +124,11 @@ local TabUtama = Window:CreateTab("Main", 4483362748)
 
 local SectionFarm = TabUtama:CreateSection("Otomatisasi Farm", false)
 
--- FITUR BARU: INSTANT MINE (menggantikan Auto Farm)
 TabUtama:CreateToggle({
 	Name = "Instant Mine",
 	CurrentValue = false,
 	Flag = "InstantMineToggle",
-	Info = "Aktifkan, lalu tahan klik untuk menghancurkan batu secara instan.",
+	Info = "Aktifkan, lalu tahan klik untuk mining lebih cepat dan kuat.",
 	Callback = function(Value)
 		instantMineEnabled = Value
 	end,
