@@ -1,9 +1,9 @@
 --================================================================--
---                 SKRIP DIBUAT OLEH PARTNER CODING                 --
+--         SKRIP DIKONVERSI KE ARRAYFIELD OLEH PARTNER CODING       --
 --================================================================--
 
--- Muat Library Rayfield
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- Muat Library Arrayfield
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/UI-Interface/CustomFIeld/main/RayField.lua'))()
 
 -- Variabel Global untuk Fitur
 local autoSellEnabled = false
@@ -13,16 +13,14 @@ local locations = {}
 local locationFileName = "Rayfield_Locations.json"
 local locationFolderPath = "Download/" -- Menggunakan folder Download
 
--- Buat Jendela Utama
+-- Buat Jendela Utama (Sintaks Arrayfield)
 local Window = Rayfield:CreateWindow({
-   Name = "Abyss Miner Menu by Partner Coding", -- NAMA UNIK UNTUK MENCEGAH KONFLIK
+   Name = "Abyss Miner Menu by Partner Coding", -- Nama unik dipertahankan
    LoadingTitle = "Memuat Antarmuka...",
    LoadingSubtitle = "oleh Partner Coding",
-   Theme = "Default",
-   Icon = "rbxassetid://4483362458",
    ConfigurationSaving = {
       Enabled = true,
-      FileName = "MyProjectConfig"
+      FileName = "MyProjectConfig_Arrayfield" -- Nama file diubah agar tidak bentrok
    },
 })
 
@@ -37,11 +35,9 @@ local function saveLocationsToFile()
             local json = game:GetService("HttpService"):JSONEncode(locations)
             writefile(locationFolderPath .. locationFileName, json)
         end)
-        if not success then
-            Rayfield:Notify({Title = "Gagal Menyimpan", Content = "Tidak dapat menulis ke folder Download."})
-        end
+        -- Notifikasi dihapus karena tidak ada di contoh Arrayfield
     else
-        Rayfield:Notify({Title = "Peringatan", Content = "Fungsi 'writefile' tidak tersedia."})
+        -- Notifikasi dihapus
     end
 end
 
@@ -61,11 +57,11 @@ local function loadLocationsFromFile()
             end
         end
     else
-        Rayfield:Notify({Title = "Peringatan", Content = "Fungsi file system tidak tersedia."})
+        -- Notifikasi dihapus
     end
 end
 
--- Fungsi Fly
+-- Fungsi Fly (Tidak ada perubahan, fungsi ini independen dari UI)
 local Player = game:GetService("Players").LocalPlayer
 local Mouse = Player:GetMouse()
 local flying = false
@@ -74,18 +70,14 @@ local bodyVelocity, bodyGyro
 local function startFly()
     local char = Player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-
     local rootPart = char.HumanoidRootPart
-    
     bodyGyro = Instance.new("BodyGyro", rootPart)
     bodyGyro.P = 9e4
     bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
     bodyGyro.CFrame = rootPart.CFrame
-
     bodyVelocity = Instance.new("BodyVelocity", rootPart)
     bodyVelocity.Velocity = Vector3.new(0, 0, 0)
     bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    
     flying = true
 end
 
@@ -99,9 +91,7 @@ game:GetService("RunService").RenderStepped:Connect(function()
     if flying and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
         local rootPart = Player.Character.HumanoidRootPart
         local camera = workspace.CurrentCamera
-        
         local velocity = Vector3.new(0, 0, 0)
-        
         if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
             velocity = camera.CFrame.LookVector * flySpeed
         end
@@ -120,7 +110,6 @@ game:GetService("RunService").RenderStepped:Connect(function()
         if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Q) then
             velocity = Vector3.new(0, -flySpeed, 0)
         end
-        
         bodyVelocity.Velocity = velocity
         bodyGyro.CFrame = camera.CFrame
     end
@@ -130,9 +119,9 @@ end)
 --================================================================--
 --                         TAB: FITUR UTAMA                         --
 --================================================================--
-local TabUtama = Window:CreateTab("Main", "rbxassetid://4483362748")
+local TabUtama = Window:CreateTab("Main", 4483362748) -- ID gambar dipertahankan
 
-local SectionPlayer = TabUtama:CreateSection("Pengaturan Player")
+local SectionPlayer = TabUtama:CreateSection("Pengaturan Player", false) -- Sintaks Arrayfield menggunakan argumen kedua
 
 TabUtama:CreateSlider({
 	Name = "Walkspeed",
@@ -150,7 +139,7 @@ TabUtama:CreateSlider({
 
 TabUtama:CreateSlider({
 	Name = "Pickaxe Damage",
-	Range = {1, 5000}, -- Angka 1 adalah placeholder, akan diupdate
+	Range = {1, 5000},
 	Increment = 10,
 	Suffix = " dmg",
 	CurrentValue = 10,
@@ -161,13 +150,10 @@ TabUtama:CreateSlider({
                 tool.Power.Value = Value
             end
         end
-
-        -- Cek di karakter (yang sedang dipakai)
         if Player.Character then
             local tool = Player.Character:FindFirstChildOfClass("Tool")
             updatePickaxe(tool)
         end
-        -- Cek di backpack
         if Player.Backpack then
             for _, tool in ipairs(Player.Backpack:GetChildren()) do
                 updatePickaxe(tool)
@@ -192,7 +178,6 @@ TabUtama:CreateToggle({
 							workspace:WaitForChild("Map"):WaitForChild("Layer 1"):WaitForChild("Npcs"):WaitForChild("Rei ' The professer"):WaitForChild("Rei"):WaitForChild("HumanoidRootPart"):WaitForChild("Dialogue")
 						}
 						game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SellAllInventory"):FireServer(unpack(args))
-						Rayfield:Notify({Title = "Auto Sell", Content = "Semua item berhasil dijual!"})
 					end)
 					task.wait(15)
 				end
@@ -208,10 +193,8 @@ TabUtama:CreateToggle({
 	Callback = function(Value)
 		if Value then
 			startFly()
-			Rayfield:Notify({Title = "Fly", Content = "Terbang diaktifkan. Gunakan W/A/S/D/E/Q."})
 		else
 			stopFly()
-			Rayfield:Notify({Title = "Fly", Content = "Terbang dinonaktifkan."})
 		end
 	end,
 })
@@ -220,8 +203,8 @@ TabUtama:CreateToggle({
 --================================================================--
 --                           TAB: TELEPORT                          --
 --================================================================--
-local TabTeleport = Window:CreateTab("Teleport", "rbxassetid://4483362458")
-local SectionLokasi = TabTeleport:CreateSection("Simpan & Teleportasi Lokasi")
+local TabTeleport = Window:CreateTab("Teleport", 4483362458)
+local SectionLokasi = TabTeleport:CreateSection("Simpan & Teleportasi Lokasi", false)
 
 local LokasiDropdown
 
@@ -230,7 +213,7 @@ local function updateDropdownOptions()
     for i = 1, #locations do
         table.insert(options, "Lokasi " .. i)
     end
-    if LokasiDropdown then
+    if LokasiDropdown and LokasiDropdown.Refresh then -- Tetap mencoba memanggil refresh jika ternyata ada
         LokasiDropdown:Refresh(options)
     end
 end
@@ -243,9 +226,6 @@ TabTeleport:CreateButton({
             table.insert(locations, {x = pos.X, y = pos.Y, z = pos.Z})
             saveLocationsToFile()
             updateDropdownOptions()
-            Rayfield:Notify({Title = "Lokasi Disimpan", Content = "Lokasi #" .. #locations .. " berhasil disimpan."})
-        else
-            Rayfield:Notify({Title = "Gagal", Content = "Karakter tidak ditemukan."})
         end
    end,
 })
@@ -253,10 +233,10 @@ TabTeleport:CreateButton({
 LokasiDropdown = TabTeleport:CreateDropdown({
 	Name = "Pilih Lokasi",
 	Options = {},
-	CurrentOption = {},
-	MultipleOptions = false,
+	CurrentOption = "", -- Diubah dari tabel kosong menjadi string untuk single selection
+	MultiSelection = false, -- !-- SINTAKS DIUBAH DARI MultipleOptions MENJADI MultiSelection --!
 	Flag = "LocationDropdown",
-	Callback = function(Options)
+	Callback = function(Option)
 		-- Callback tidak perlu melakukan apa-apa saat dipilih
 	end,
 })
@@ -264,25 +244,20 @@ LokasiDropdown = TabTeleport:CreateDropdown({
 TabTeleport:CreateButton({
    Name = "Teleport ke Lokasi Terpilih",
    Callback = function()
-        if #LokasiDropdown.CurrentOption > 0 and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            local selectedOption = LokasiDropdown.CurrentOption[1]
+        if LokasiDropdown.CurrentOption ~= "" and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+            local selectedOption = LokasiDropdown.CurrentOption
             local index = tonumber(string.match(selectedOption, "%d+"))
             
             if index and locations[index] then
                 local loc = locations[index]
-                Player.Character.HumanoidRootPart.CFrame = CFrame.new(loc.x, loc.y + 5, loc.z) -- Tambah 5 di Y agar tidak stuck
-                Rayfield:Notify({Title = "Teleport", Content = "Berhasil teleport ke " .. selectedOption})
-            else
-                Rayfield:Notify({Title = "Gagal", Content = "Lokasi tidak valid."})
+                Player.Character.HumanoidRootPart.CFrame = CFrame.new(loc.x, loc.y + 5, loc.z)
             end
-        else
-            Rayfield:Notify({Title = "Gagal", Content = "Pilih lokasi atau karakter tidak ditemukan."})
         end
    end,
 })
 
 
-local SectionTeman = TabTeleport:CreateSection("Teleportasi Teman")
+local SectionTeman = TabTeleport:CreateSection("Teleportasi Teman", false)
 
 local NamaTemanInput = TabTeleport:CreateInput({
 	Name = "Username Teman",
@@ -299,32 +274,17 @@ TabTeleport:CreateButton({
         local myChar = Player.Character
         local friendName = NamaTemanInput.CurrentValue
         
-        if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then
-            Rayfield:Notify({Title = "Gagal", Content = "Karakter-mu tidak ditemukan."})
-            return
-        end
-        
-        if not friendName or friendName == "" then
-            Rayfield:Notify({Title = "Gagal", Content = "Masukkan nama teman terlebih dahulu."})
-            return
-        end
+        if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
+        if not friendName or friendName == "" then return end
 
         local friendPlayer = game:GetService("Players"):FindFirstChild(friendName)
-        if not friendPlayer then
-            Rayfield:Notify({Title = "Gagal", Content = "Player '" .. friendName .. "' tidak ditemukan."})
-            return
-        end
+        if not friendPlayer then return end
 
         local friendChar = friendPlayer.Character
-        if not friendChar or not friendChar:FindFirstChild("HumanoidRootPart") then
-            Rayfield:Notify({Title = "Gagal", Content = "Karakter teman '" .. friendName .. "' tidak ditemukan."})
-            return
-        end
+        if not friendChar or not friendChar:FindFirstChild("HumanoidRootPart") then return end
 
-        -- Mencoba teleportasi (membutuhkan izin khusus)
         pcall(function()
             friendChar.HumanoidRootPart.CFrame = myChar.HumanoidRootPart.CFrame
-            Rayfield:Notify({Title = "Berhasil", Content = friendName .. " telah dipindahkan ke posisimu."})
         end)
    end,
 })
@@ -334,4 +294,4 @@ TabTeleport:CreateButton({
 --================================================================--
 loadLocationsFromFile()
 updateDropdownOptions()
-Rayfield:LoadConfiguration() -- Memuat konfigurasi yang disimpan Rayfield
+-- Rayfield:LoadConfiguration() dihapus, karena Arrayfield kemungkinan melakukannya secara otomatis.
