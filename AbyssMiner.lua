@@ -1,5 +1,5 @@
 --================================================================--
---         SKRIP DIPERBARUI OLEH PARTNER CODING (V2)                --
+--         SKRIP DIPERBARUI OLEH PARTNER CODING (V3)                --
 --================================================================--
 
 -- Muat Library Arrayfield
@@ -7,7 +7,7 @@ local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/UI-I
 
 -- Variabel Global untuk Fitur
 local autoSellEnabled = false
-local autoFarmEnabled = false -- Variabel baru untuk auto farm
+local instantMineEnabled = false -- Variabel baru untuk Instant Mine
 local flyEnabled = false
 local flySpeed = 50 
 local locations = {}
@@ -79,7 +79,9 @@ local function stopFly()
     flying = false
 end
 
-game:GetService("RunService").RenderStepped:Connect(function()
+-- Loop utama untuk fitur yang berjalan terus menerus (Fly dan Instant Mine)
+game:GetService("RunService").Heartbeat:Connect(function()
+    -- Logika untuk Fly
     if flying and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
         local rootPart = Player.Character.HumanoidRootPart
         local camera = workspace.CurrentCamera
@@ -94,6 +96,24 @@ game:GetService("RunService").RenderStepped:Connect(function()
         bodyVelocity.Velocity = velocity
         bodyGyro.CFrame = camera.CFrame
     end
+
+    -- Logika untuk Instant Mine (sesuai idemu)
+    if instantMineEnabled then
+        local char = Player.Character
+        if char then
+            local tool = char:FindFirstChildOfClass("Tool") -- Dapatkan alat yang sedang dipegang
+            if tool then
+                -- Cari properti dan paksa nilainya
+                local power = tool:FindFirstChild("Power")
+                local speed = tool:FindFirstChild("Speed")
+                local cooldown = tool:FindFirstChild("CoolDown")
+
+                if power then power.Value = 5000 end
+                if speed then speed.Value = 0 end
+                if cooldown then cooldown.Value = 0 end
+            end
+        end
+    end
 end)
 
 
@@ -104,39 +124,16 @@ local TabUtama = Window:CreateTab("Main", 4483362748)
 
 local SectionFarm = TabUtama:CreateSection("Otomatisasi Farm", false)
 
--- FITUR BARU: AUTO FARM / SPAM HIT
+-- FITUR BARU: INSTANT MINE (menggantikan Auto Farm)
 TabUtama:CreateToggle({
-	Name = "Auto Farm (Spam Hit)",
+	Name = "Instant Mine",
 	CurrentValue = false,
-	Flag = "AutoFarmToggle",
-	Info = "Pegang Iron Pickaxe lalu aktifkan untuk spam hit.",
+	Flag = "InstantMineToggle",
+	Info = "Aktifkan, lalu tahan klik untuk menghancurkan batu secara instan.",
 	Callback = function(Value)
-		autoFarmEnabled = Value
-		if autoFarmEnabled then
-			task.spawn(function()
-				while autoFarmEnabled do
-					local equippedTool = Player.Character and Player.Character:FindFirstChildOfClass("Tool")
-					
-					-- Pastikan yang dipegang adalah Iron Pickaxe
-					if equippedTool and equippedTool.Name == "Iron Pickaxe" then
-						pcall(function()
-							-- Menembakkan remote event secara manual dengan nilai yang kita inginkan
-							game.ReplicatedStorage.RemoteEvent.HitBox:FireServer(
-								5000, -- Damage
-								equippedTool.Type.Value, 
-								game.Players.LocalPlayer.Character:GetAttribute("Climbing"), 
-								equippedTool.pickaxeId.Value, 
-								0 -- Cooldown
-							)
-						end)
-					end
-					task.wait() -- Tunggu sesaat agar tidak crash
-				end
-			end)
-		end
+		instantMineEnabled = Value
 	end,
 })
-
 
 local SectionPlayer = TabUtama:CreateSection("Pengaturan Player", false)
 
@@ -153,33 +150,6 @@ TabUtama:CreateSlider({
 		end
 	end,
 })
-
-TabUtama:CreateSlider({
-	Name = "Pickaxe Damage (Kurang Efektif)",
-	Range = {1, 5000},
-	Increment = 10,
-	Suffix = " dmg",
-	CurrentValue = 10,
-	Flag = "PickaxeDamageSlider",
-    Info = "Mungkin tidak bekerja jika server memiliki anti-cheat.",
-	Callback = function(Value)
-        local function updatePickaxe(tool)
-            if tool and tool:IsA("Tool") and tool:FindFirstChild("Power") then
-                tool.Power.Value = Value
-            end
-        end
-        if Player.Character then
-            local tool = Player.Character:FindFirstChildOfClass("Tool")
-            updatePickaxe(tool)
-        end
-        if Player.Backpack then
-            for _, tool in ipairs(Player.Backpack:GetChildren()) do
-                updatePickaxe(tool)
-            end
-        end
-	end,
-})
-
 
 TabUtama:CreateToggle({
 	Name = "Auto Sell (15 detik)",
@@ -209,11 +179,7 @@ TabUtama:CreateToggle({
 	CurrentValue = false,
 	Flag = "FlyToggle",
 	Callback = function(Value)
-		if Value then
-			startFly()
-		else
-			stopFly()
-		end
+		if Value then startFly() else stopFly() end
 	end,
 })
 
