@@ -15,7 +15,7 @@ local locationFolderPath = "Download/" -- Menggunakan folder Download
 
 -- Buat Jendela Utama
 local Window = Rayfield:CreateWindow({
-   Name = "Project Script Menu",
+   Name = "Abyss Miner Menu by Partner Coding", -- NAMA UNIK UNTUK MENCEGAH KONFLIK
    LoadingTitle = "Memuat Antarmuka...",
    LoadingSubtitle = "oleh Partner Coding",
    Theme = "Default",
