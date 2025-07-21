@@ -1,5 +1,5 @@
 --================================================================--
---         SKRIP DIKONVERSI KE ARRAYFIELD OLEH PARTNER CODING       --
+--         SKRIP DIPERBARUI OLEH PARTNER CODING (V2)                --
 --================================================================--
 
 -- Muat Library Arrayfield
@@ -7,20 +7,21 @@ local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/UI-I
 
 -- Variabel Global untuk Fitur
 local autoSellEnabled = false
+local autoFarmEnabled = false -- Variabel baru untuk auto farm
 local flyEnabled = false
 local flySpeed = 50 
 local locations = {}
 local locationFileName = "Rayfield_Locations.json"
-local locationFolderPath = "Download/" -- Menggunakan folder Download
+local locationFolderPath = "Download/"
 
--- Buat Jendela Utama (Sintaks Arrayfield)
+-- Buat Jendela Utama
 local Window = Rayfield:CreateWindow({
-   Name = "Abyss Miner Menu by Partner Coding", -- Nama unik dipertahankan
+   Name = "Abyss Miner Menu by Partner Coding",
    LoadingTitle = "Memuat Antarmuka...",
    LoadingSubtitle = "oleh Partner Coding",
    ConfigurationSaving = {
       Enabled = true,
-      FileName = "MyProjectConfig_Arrayfield" -- Nama file diubah agar tidak bentrok
+      FileName = "MyProjectConfig_Arrayfield"
    },
 })
 
@@ -31,23 +32,17 @@ local Window = Rayfield:CreateWindow({
 -- Fungsi untuk menyimpan lokasi
 local function saveLocationsToFile()
     if writefile then
-        local success, err = pcall(function()
+        pcall(function()
             local json = game:GetService("HttpService"):JSONEncode(locations)
             writefile(locationFolderPath .. locationFileName, json)
         end)
-        -- Notifikasi dihapus karena tidak ada di contoh Arrayfield
-    else
-        -- Notifikasi dihapus
     end
 end
 
 -- Fungsi untuk memuat lokasi
 local function loadLocationsFromFile()
     if isfile and readfile and isfolder then
-        if not isfolder(locationFolderPath) then
-            makefolder(locationFolderPath) -- Buat folder jika belum ada
-        end
-
+        if not isfolder(locationFolderPath) then makefolder(locationFolderPath) end
         if isfile(locationFolderPath .. locationFileName) then
             local success, data = pcall(function()
                 return game:GetService("HttpService"):JSONDecode(readfile(locationFolderPath .. locationFileName))
@@ -56,14 +51,11 @@ local function loadLocationsFromFile()
                 locations = data
             end
         end
-    else
-        -- Notifikasi dihapus
     end
 end
 
--- Fungsi Fly (Tidak ada perubahan, fungsi ini independen dari UI)
+-- Fungsi Fly
 local Player = game:GetService("Players").LocalPlayer
-local Mouse = Player:GetMouse()
 local flying = false
 local bodyVelocity, bodyGyro
 
@@ -92,24 +84,13 @@ game:GetService("RunService").RenderStepped:Connect(function()
         local rootPart = Player.Character.HumanoidRootPart
         local camera = workspace.CurrentCamera
         local velocity = Vector3.new(0, 0, 0)
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
-            velocity = camera.CFrame.LookVector * flySpeed
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
-            velocity = -camera.CFrame.LookVector * flySpeed
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
-            velocity = -camera.CFrame.RightVector * flySpeed
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
-            velocity = camera.CFrame.RightVector * flySpeed
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.E) then
-            velocity = Vector3.new(0, flySpeed, 0)
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Q) then
-            velocity = Vector3.new(0, -flySpeed, 0)
-        end
+        local keybinds = game:GetService("UserInputService")
+        if keybinds:IsKeyDown(Enum.KeyCode.W) then velocity = camera.CFrame.LookVector * flySpeed end
+        if keybinds:IsKeyDown(Enum.KeyCode.S) then velocity = -camera.CFrame.LookVector * flySpeed end
+        if keybinds:IsKeyDown(Enum.KeyCode.A) then velocity = -camera.CFrame.RightVector * flySpeed end
+        if keybinds:IsKeyDown(Enum.KeyCode.D) then velocity = camera.CFrame.RightVector * flySpeed end
+        if keybinds:IsKeyDown(Enum.KeyCode.E) then velocity = Vector3.new(0, flySpeed, 0) end
+        if keybinds:IsKeyDown(Enum.KeyCode.Q) then velocity = Vector3.new(0, -flySpeed, 0) end
         bodyVelocity.Velocity = velocity
         bodyGyro.CFrame = camera.CFrame
     end
@@ -119,9 +100,45 @@ end)
 --================================================================--
 --                         TAB: FITUR UTAMA                         --
 --================================================================--
-local TabUtama = Window:CreateTab("Main", 4483362748) -- ID gambar dipertahankan
+local TabUtama = Window:CreateTab("Main", 4483362748)
 
-local SectionPlayer = TabUtama:CreateSection("Pengaturan Player", false) -- Sintaks Arrayfield menggunakan argumen kedua
+local SectionFarm = TabUtama:CreateSection("Otomatisasi Farm", false)
+
+-- FITUR BARU: AUTO FARM / SPAM HIT
+TabUtama:CreateToggle({
+	Name = "Auto Farm (Spam Hit)",
+	CurrentValue = false,
+	Flag = "AutoFarmToggle",
+	Info = "Pegang Iron Pickaxe lalu aktifkan untuk spam hit.",
+	Callback = function(Value)
+		autoFarmEnabled = Value
+		if autoFarmEnabled then
+			task.spawn(function()
+				while autoFarmEnabled do
+					local equippedTool = Player.Character and Player.Character:FindFirstChildOfClass("Tool")
+					
+					-- Pastikan yang dipegang adalah Iron Pickaxe
+					if equippedTool and equippedTool.Name == "Iron Pickaxe" then
+						pcall(function()
+							-- Menembakkan remote event secara manual dengan nilai yang kita inginkan
+							game.ReplicatedStorage.RemoteEvent.HitBox:FireServer(
+								5000, -- Damage
+								equippedTool.Type.Value, 
+								game.Players.LocalPlayer.Character:GetAttribute("Climbing"), 
+								equippedTool.pickaxeId.Value, 
+								0 -- Cooldown
+							)
+						end)
+					end
+					task.wait() -- Tunggu sesaat agar tidak crash
+				end
+			end)
+		end
+	end,
+})
+
+
+local SectionPlayer = TabUtama:CreateSection("Pengaturan Player", false)
 
 TabUtama:CreateSlider({
 	Name = "Walkspeed",
@@ -138,12 +155,13 @@ TabUtama:CreateSlider({
 })
 
 TabUtama:CreateSlider({
-	Name = "Pickaxe Damage",
+	Name = "Pickaxe Damage (Kurang Efektif)",
 	Range = {1, 5000},
 	Increment = 10,
 	Suffix = " dmg",
 	CurrentValue = 10,
 	Flag = "PickaxeDamageSlider",
+    Info = "Mungkin tidak bekerja jika server memiliki anti-cheat.",
 	Callback = function(Value)
         local function updatePickaxe(tool)
             if tool and tool:IsA("Tool") and tool:FindFirstChild("Power") then
@@ -213,7 +231,7 @@ local function updateDropdownOptions()
     for i = 1, #locations do
         table.insert(options, "Lokasi " .. i)
     end
-    if LokasiDropdown and LokasiDropdown.Refresh then -- Tetap mencoba memanggil refresh jika ternyata ada
+    if LokasiDropdown and LokasiDropdown.Refresh then
         LokasiDropdown:Refresh(options)
     end
 end
@@ -233,11 +251,10 @@ TabTeleport:CreateButton({
 LokasiDropdown = TabTeleport:CreateDropdown({
 	Name = "Pilih Lokasi",
 	Options = {},
-	CurrentOption = "", -- Diubah dari tabel kosong menjadi string untuk single selection
-	MultiSelection = false, -- !-- SINTAKS DIUBAH DARI MultipleOptions MENJADI MultiSelection --!
+	CurrentOption = "",
+	MultiSelection = false,
 	Flag = "LocationDropdown",
 	Callback = function(Option)
-		-- Callback tidak perlu melakukan apa-apa saat dipilih
 	end,
 })
 
@@ -247,7 +264,6 @@ TabTeleport:CreateButton({
         if LokasiDropdown.CurrentOption ~= "" and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
             local selectedOption = LokasiDropdown.CurrentOption
             local index = tonumber(string.match(selectedOption, "%d+"))
-            
             if index and locations[index] then
                 local loc = locations[index]
                 Player.Character.HumanoidRootPart.CFrame = CFrame.new(loc.x, loc.y + 5, loc.z)
@@ -264,7 +280,6 @@ local NamaTemanInput = TabTeleport:CreateInput({
 	PlaceholderText = "Masukkan nama teman...",
 	RemoveTextAfterFocusLost = false,
 	Callback = function(Text)
-		-- Tidak perlu callback di sini
 	end,
 })
 
@@ -273,16 +288,12 @@ TabTeleport:CreateButton({
    Callback = function()
         local myChar = Player.Character
         local friendName = NamaTemanInput.CurrentValue
-        
-        if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
-        if not friendName or friendName == "" then return end
-
+        if not (myChar and myChar:FindFirstChild("HumanoidRootPart")) then return end
+        if not (friendName and friendName ~= "") then return end
         local friendPlayer = game:GetService("Players"):FindFirstChild(friendName)
         if not friendPlayer then return end
-
         local friendChar = friendPlayer.Character
-        if not friendChar or not friendChar:FindFirstChild("HumanoidRootPart") then return end
-
+        if not (friendChar and friendChar:FindFirstChild("HumanoidRootPart")) then return end
         pcall(function()
             friendChar.HumanoidRootPart.CFrame = myChar.HumanoidRootPart.CFrame
         end)
@@ -294,4 +305,3 @@ TabTeleport:CreateButton({
 --================================================================--
 loadLocationsFromFile()
 updateDropdownOptions()
--- Rayfield:LoadConfiguration() dihapus, karena Arrayfield kemungkinan melakukannya secara otomatis.
