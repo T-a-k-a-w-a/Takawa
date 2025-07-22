@@ -1,15 +1,15 @@
 --================================================================--
---      SKRIP VERSI FINAL (WINDUI + SEMUA FITUR) - OLEH PARTNER CODING     --
+--      SKRIP VERSI FINAL (RAYFIELD + SEMUA FITUR) - OLEH PARTNER CODING     --
 --================================================================--
 
--- Muat Library WindUI
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+-- Muat Library Rayfield
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- Variabel Global
 local Player = game:GetService("Players").LocalPlayer
 local locations = {}
-local locationFileName = "WindUI_Locations.json" -- Nama file unik untuk WindUI
-local locationFolderPath = "WindUI/" -- Folder khusus untuk WindUI
+local locationFileName = "Rayfield_Locations.json"
+local locationFolderPath = "Rayfield/" -- Folder khusus untuk Rayfield
 local originalToolStats = {}
 local lastKnownTool = nil
 
@@ -19,15 +19,16 @@ local walkspeedValue = 16
 local flySpeed = 50 
 
 -- Buat Jendela Utama
-local Window = WindUI:CreateWindow({
-    Title = "Abyss Miner Menu v9",
-    Author = "Partner Coding",
-    Folder = "AbyssMinerWindUI",
-    Size = UDim2.fromOffset(580, 460),
-    Theme = "Dark",
-    User = { Enabled = true },
-    KeySystem = false,
-    ToggleKey = Enum.KeyCode.RightShift
+local Window = Rayfield:CreateWindow({
+   Name = "Abyss Miner Menu FINAL",
+   LoadingTitle = "Memuat Abyss Miner Menu...",
+   LoadingSubtitle = "oleh Partner Coding",
+   Theme = "Ocean", -- Menggunakan tema Ocean sesuai permintaan
+   ToggleUIKeybind = Enum.KeyCode.RightShift,
+   ConfigurationSaving = {
+      Enabled = true,
+      FileName = "AbyssMinerConfig"
+   }
 })
 
 -- Variabel untuk menyimpan referensi ke elemen UI
@@ -90,7 +91,7 @@ Player.CharacterAdded:Connect(function(char)
         if uiElements.AntiFall and antiFallDamageEnabled then uiElements.AntiFall:Set(true) end
         if uiElements.Fly and flyEnabled then uiElements.Fly:Set(true) end
         if uiElements.Walkspeed then uiElements.Walkspeed:Set(walkspeedValue) end
-        WindUI:Notify({Title="Pengaturan Dimuat", Content="Pengaturanmu telah dimuat ulang setelah respawn."})
+        Rayfield:Notify({Title="Pengaturan Dimuat", Content="Pengaturanmu telah dimuat ulang setelah respawn.", Image = "loader-circle"})
     end)
 end)
 
@@ -99,41 +100,34 @@ local function saveLocationsToFile() if writefile then pcall(function() if not i
 local function loadLocationsFromFile() if isfile and readfile and isfolder(locationFolderPath) then if isfile(locationFolderPath .. locationFileName) then local s, d = pcall(function() return game:GetService("HttpService"):JSONDecode(readfile(locationFolderPath .. locationFileName)) end); if s and type(d) == "table" then locations = d end end end
 
 --================================================================--
---                         UI SECTIONS & TABS                       --
+--                         UI TABS & SECTIONS                       --
 --================================================================--
--- Section 1: Fitur Utama
-local SectionUtama = Window:Section({ Title = "Fitur Utama" })
-local TabMain = SectionUtama:Tab({ Title = "Main", Icon = "pickaxe" })
-local TabPlayer = SectionUtama:Tab({ Title = "Player", Icon = "user" })
+local TabUtama = Window:CreateTab("Main", "pickaxe")
+local SectionFarm = TabUtama:CreateSection("Otomatisasi Farm")
+local SectionPlayer = TabUtama:CreateSection("Pengaturan Player")
 
--- Section 2: Navigasi
-local SectionNavigasi = Window:Section({ Title = "Navigasi" })
-local TabTeleport = SectionNavigasi:Tab({ Title = "Teleportasi", Icon = "map-pin" })
-
--- Section 3: Pengaturan (bisa ditambahkan nanti jika perlu)
--- local SectionPengaturan = Window:Section({ Title = "Pengaturan" })
--- local TabSettings = SectionPengaturan:Tab({ Title = "Settings", Icon = "settings" })
-
-Window:SelectTab(1) -- Pilih tab pertama secara default
+local TabTeleport = Window:CreateTab("Teleportasi", "map-pin")
+local SectionLokasi = TabTeleport:CreateSection("Simpan & Teleportasi Lokasi")
+local SectionTeman = TabTeleport:CreateSection("Teleportasi Teman")
 
 --================================================================--
 --                         ELEMENTS: TAB MAIN                       --
 --================================================================--
-uiElements.InstantMine = TabMain:Toggle({
-    Name = "Instant Mine (Speed Only)",
-    Desc = "Aktifkan, lalu tahan klik untuk mining super cepat.",
-    Default = false,
-    Callback = function(state)
+uiElements.InstantMine = SectionFarm:CreateToggle({
+   Name = "Instant Mine (Speed Only)",
+   CurrentValue = false,
+   Flag = "InstantMine",
+   Callback = function(state)
         instantMineEnabled = state
         if not state then restoreToolStats() end
-    end,
+   end,
 })
 
-uiElements.AutoSell = TabMain:Toggle({
-    Name = "Auto Sell (15 detik)",
-    Desc = "Menjual semua item di inventory setiap 15 detik.",
-    Default = false,
-    Callback = function(state)
+uiElements.AutoSell = SectionFarm:CreateToggle({
+   Name = "Auto Sell (15 detik)",
+   CurrentValue = false,
+   Flag = "AutoSell",
+   Callback = function(state)
         autoSellEnabled = state
         if autoSellEnabled then
             task.spawn(function()
@@ -149,46 +143,53 @@ uiElements.AutoSell = TabMain:Toggle({
                 end
             end)
         end
-    end,
+   end,
 })
 
 --================================================================--
 --                        ELEMENTS: TAB PLAYER                      --
 --================================================================--
-uiElements.Walkspeed = TabPlayer:Slider({
-    Name = "Walkspeed",
-    Min = 16, Max = 100, Default = 16, Increment = 1, ValueName = "speed",
-    Callback = function(value)
+uiElements.Walkspeed = SectionPlayer:CreateSlider({
+   Name = "Walkspeed",
+   Range = {16, 100},
+   Increment = 1,
+   Suffix = " speed",
+   CurrentValue = 16,
+   Flag = "Walkspeed",
+   Callback = function(value)
         walkspeedValue = value
-    end,
+   end,
 })
 
-uiElements.FlySpeed = TabPlayer:Slider({
-    Name = "Kecepatan Terbang",
-    Desc = "Kecepatan tinggi (>50) dapat menyebabkan kick.",
-    Min = 10, Max = 200, Default = 50, Increment = 5, ValueName = "speed",
-    Callback = function(value)
+uiElements.FlySpeed = SectionPlayer:CreateSlider({
+   Name = "Kecepatan Terbang",
+   Range = {10, 200},
+   Increment = 5,
+   Suffix = " speed",
+   CurrentValue = 50,
+   Flag = "FlySpeed",
+   Callback = function(value)
         flySpeed = value
-    end,
+   end,
 })
 
-uiElements.AntiFall = TabPlayer:Toggle({
-    Name = "Anti Fall Damage",
-    Desc = "Mencegah damage saat jatuh dari ketinggian.",
-    Default = false,
-    Callback = function(state)
+uiElements.AntiFall = SectionPlayer:CreateToggle({
+   Name = "Anti Fall Damage",
+   CurrentValue = false,
+   Flag = "AntiFall",
+   Callback = function(state)
         antiFallDamageEnabled = state
-    end,
+   end,
 })
 
-uiElements.Fly = TabPlayer:Toggle({
-    Name = "Toggle Fly",
-    Desc = "Gunakan W/A/S/D/E/Q untuk terbang.",
-    Default = false,
-    Callback = function(state)
+uiElements.Fly = SectionPlayer:CreateToggle({
+   Name = "Toggle Fly",
+   CurrentValue = false,
+   Flag = "Fly",
+   Callback = function(state)
         flyEnabled = state
         if state then startFly() else stopFly() end
-    end,
+   end,
 })
 
 --================================================================--
@@ -199,71 +200,85 @@ local function updateLocationsDropdown()
     local options = {}
     for i, locData in ipairs(locations) do table.insert(options, locData.Name) end
     if LocationDropdown then
-        LocationDropdown:Refresh(options) -- WindUI mendukung refresh!
+        LocationDropdown:Refresh(options)
     end
 end
 
-TabTeleport:Button({
-    Name = "Simpan Lokasi Saat Ini",
-    Callback = function()
-        Window:Dialog({
-            Title = "Nama Lokasi", Content = "Masukkan nama untuk lokasi ini:",
-            Buttons = {{ Title = "Batal" }},
-            Input = { Placeholder = "Contoh: Base", Callback = function(text)
-                if text and text ~= "" and Player.Character and Player.Character.PrimaryPart then
-                    local pos = Player.Character.PrimaryPart.Position
-                    table.insert(locations, {Name = text, Pos = {x = pos.X, y = pos.Y, z = pos.Z}})
-                    saveLocationsToFile()
-                    updateLocationsDropdown()
-                    WindUI:Notify({Title="Lokasi Disimpan", Content= text .. " berhasil disimpan."})
-                end
-            end }
-        })
-    end,
+SectionLokasi:CreateButton({
+   Name = "Simpan Lokasi Saat Ini",
+   Callback = function()
+       -- Di Rayfield, dialog tidak ada, jadi kita gunakan Input untuk nama
+       SectionLokasi:CreateInput({
+           Name = "Nama Lokasi",
+           PlaceholderText = "Contoh: Base",
+           RemoveTextAfterFocusLost = true,
+           Callback = function(text)
+               if text and text ~= "" and Player.Character and Player.Character.PrimaryPart then
+                   local pos = Player.Character.PrimaryPart.Position
+                   table.insert(locations, {Name = text, Pos = {x = pos.X, y = pos.Y, z = pos.Z}})
+                   saveLocationsToFile()
+                   updateLocationsDropdown()
+                   Rayfield:Notify({Title="Lokasi Disimpan", Content= text .. " berhasil disimpan.", Image = "save"})
+               end
+           end
+       })
+   end,
 })
 
 loadLocationsFromFile()
 local dropdownOptions = {}
 for i, locData in ipairs(locations) do table.insert(dropdownOptions, locData.Name) end
 
-LocationDropdown = TabTeleport:Dropdown({
-    Name = "Pilih Lokasi",
-    Options = dropdownOptions,
-    Default = dropdownOptions[1] or nil,
-    Callback = function(value) end,
+LocationDropdown = SectionLokasi:CreateDropdown({
+   Name = "Pilih Lokasi",
+   Options = dropdownOptions,
+   CurrentOption = dropdownOptions[1] and {dropdownOptions[1]} or {},
+   MultipleOptions = false,
+   Flag = "LocationDropdown",
+   Callback = function(option) end,
 })
 
-TabTeleport:Button({
-    Name = "Set Spawn di Lokasi Terpilih",
-    Callback = function()
-        local selectedName = LocationDropdown.Value
-        local selectedLocData
-        for _, locData in ipairs(locations) do if locData.Name == selectedName then selectedLocData = locData; break end end
-        if selectedLocData then
-            pcall(function()
-                game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SetSpawnPoint"):FireServer(Vector3.new(selectedLocData.Pos.x, selectedLocData.Pos.y, selectedLocData.Pos.z))
-                WindUI:Notify({Title="Spawn Point Diatur", Content="Spawn point diatur di " .. selectedName .. ". Reset karakter untuk teleport."})
-            end)
-        else WindUI:Notify({Title="Gagal", Content="Pilih lokasi yang valid terlebih dahulu."}) end
-    end
+SectionLokasi:CreateButton({
+   Name = "Set Spawn di Lokasi Terpilih",
+   Callback = function()
+        if #LocationDropdown.CurrentOption > 0 then
+            local selectedName = LocationDropdown.CurrentOption[1]
+            local selectedLocData
+            for _, locData in ipairs(locations) do if locData.Name == selectedName then selectedLocData = locData; break end end
+            
+            if selectedLocData then
+                pcall(function()
+                    game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SetSpawnPoint"):FireServer(Vector3.new(selectedLocData.Pos.x, selectedLocData.Pos.y, selectedLocData.Pos.z))
+                    Rayfield:Notify({Title="Spawn Point Diatur", Content="Spawn diatur di " .. selectedName, Image = "map-pin"})
+                end)
+            else Rayfield:Notify({Title="Gagal", Content="Pilih lokasi yang valid.", Image = "alert-triangle"}) end
+        end
+   end,
 })
 
-TabTeleport:Button({
-    Name = "RESET KARAKTER (TELEPORT)", Desc = "Gunakan ini setelah 'Set Spawn' untuk berpindah lokasi.",
-    Callback = function() if Player.Character and Player.Character:FindFirstChild("Humanoid") then Player.Character.Humanoid.Health = 0 end end
+SectionLokasi:CreateButton({
+   Name = "RESET KARAKTER (TELEPORT)",
+   Callback = function() if Player.Character and Player.Character:FindFirstChild("Humanoid") then Player.Character.Humanoid.Health = 0 end end
 })
 
-TabTeleport:Divider()
+uiElements.FriendName = SectionTeman:CreateInput({
+   Name = "Username Teman",
+   PlaceholderText = "Masukkan nama teman...",
+   Flag = "FriendName",
+   Callback = function(text) end
+})
 
-local FriendNameInput = TabTeleport:Textbox({ Name = "Username Teman", Placeholder = "Masukkan nama...", Default = "" })
-TabTeleport:Button({
-    Name = "Pindahkan Teman ke Saya",
-    Callback = function()
-        local myChar = Player.Character; local friendName = FriendNameInput.Value
-        if not (myChar and myChar.PrimaryPart) then WindUI:Notify({Title="Gagal", Content="Karaktermu tidak ditemukan."}); return end
-        if not (friendName and friendName ~= "") then WindUI:Notify({Title="Gagal", Content="Masukkan nama teman."}); return end
+SectionTeman:CreateButton({
+   Name = "Pindahkan Teman ke Saya",
+   Callback = function()
+        local myChar = Player.Character; local friendName = uiElements.FriendName.CurrentValue
+        if not (myChar and myChar.PrimaryPart) then Rayfield:Notify({Title="Gagal", Content="Karaktermu tidak ditemukan.", Image = "alert-triangle"}); return end
+        if not (friendName and friendName ~= "") then Rayfield:Notify({Title="Gagal", Content="Masukkan nama teman.", Image = "alert-triangle"}); return end
         local friendPlayer = game:GetService("Players"):FindFirstChild(friendName)
-        if not (friendPlayer and friendPlayer.Character and friendPlayer.Character.PrimaryPart) then WindUI:Notify({Title="Gagal", Content="Player '" .. friendName .. "' tidak ditemukan."}); return end
-        pcall(function() friendPlayer.Character:SetPrimaryPartCFrame(myChar.PrimaryPart.CFrame); WindUI:Notify({Title="Berhasil", Content=friendName .. " telah dipindahkan."}) end)
-    end,
+        if not (friendPlayer and friendPlayer.Character and friendPlayer.Character.PrimaryPart) then Rayfield:Notify({Title="Gagal", Content="Player '" .. friendName .. "' tidak ditemukan.", Image = "alert-triangle"}); return end
+        pcall(function() friendPlayer.Character:SetPrimaryPartCFrame(myChar.PrimaryPart.CFrame); Rayfield:Notify({Title="Berhasil", Content=friendName .. " telah dipindahkan.", Image = "user-check"}) end)
+   end,
 })
+
+-- Terakhir, muat konfigurasi yang tersimpan
+Rayfield:LoadConfiguration()
