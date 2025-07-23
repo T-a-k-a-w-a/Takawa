@@ -1,17 +1,17 @@
 --================================================================--
---      SKRIP VERSI SEDERHANA (SHAMAN UI) - OLEH PARTNER CODING     --
+--      SKRIP VERSI FINAL (RAYFIELD + SEMUA PERBAIKAN) - OLEH PARTNER CODING     --
 --================================================================--
 
--- Muat Library Shaman UI
-local success, Library = pcall(function()
-    return loadstring(game:HttpGet('https://raw.githubusercontent.com/Rain-Design/Libraries/main/Shaman/Library.lua'))()
+-- Pemuatan Library yang Aman (Safe Loading)
+local success, Rayfield = pcall(function()
+    return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 end)
 
-if not success or not Library then
+if not success or not Rayfield then
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Script Error", Text = "Gagal memuat Shaman Library. Periksa konsol (F9) untuk detail.", Duration = 15
+        Title = "Script Error", Text = "Gagal memuat Rayfield Library. Periksa konsol (F9) untuk detail.", Duration = 15
     })
-    warn("Shaman Library Gagal Dimuat! Periksa koneksi internet atau coba jalankan ulang skrip. Error: " .. tostring(Library))
+    warn("Rayfield Library Gagal Dimuat! Periksa koneksi internet atau coba jalankan ulang skrip. Error: " .. tostring(Rayfield))
     return -- Menghentikan sisa skrip
 end
 
@@ -30,9 +30,20 @@ local platformConnection = nil
 local platformY = 0
 
 -- Buat Jendela Utama
-local Window = Library:Window({
-    Text = "Abyss Miner Menu"
+local Window = Rayfield:CreateWindow({
+   Name = "Abyss Miner Menu (Rayfield)",
+   LoadingTitle = "Memuat Abyss Miner Menu...",
+   LoadingSubtitle = "oleh Partner Coding",
+   Theme = "Ocean", -- Tema Ocean sesuai permintaan
+   ToggleUIKeybind = Enum.KeyCode.RightShift,
+   ConfigurationSaving = {
+      Enabled = true,
+      FileName = "AbyssMinerRayfieldConfig"
+   }
 })
+
+-- Variabel untuk menyimpan referensi ke elemen UI
+local uiElements = {}
 
 --================================================================--
 --                        FUNGSI-FUNGSI UTAMA                       --
@@ -77,45 +88,46 @@ game:GetService("RunService").Heartbeat:Connect(function()
     end
 end)
 
--- Fungsi Anti Fall Damage
+-- Fungsi Anti Fall Damage & Auto-Respawn
 local function onStateChanged(humanoid, old, new) if new == Enum.HumanoidStateType.Landed and antiFallDamageEnabled then pcall(function() humanoid:ChangeState(Enum.HumanoidStateType.Swimming) end) end end
 Player.CharacterAdded:Connect(function(char) 
     local humanoid = char:WaitForChild("Humanoid")
     humanoid.StateChanged:Connect(function(old, new) onStateChanged(humanoid, old, new) end)
     
-    -- Auto Re-Apply Settings on Respawn
     task.wait(2)
     pcall(function()
-        local uiElements = Window.UIElements or {}
-        if instantMineEnabled and uiElements.InstantMine then uiElements.InstantMine:Set(true) end
-        if autoSellEnabled and uiElements.AutoSell then uiElements.AutoSell:Set(true) end
-        if antiFallDamageEnabled and uiElements.AntiFall then uiElements.AntiFall:Set(true) end
-        if floatPlatformEnabled and uiElements.FloatPlatform then uiElements.FloatPlatform:Set(true) end
-        if flyEnabled and uiElements.Fly then uiElements.Fly:Set(true) end
-        if uiElements.Walkspeed then uiElements.Walkspeed:Set(walkspeedValue) end
+        Rayfield:LoadConfiguration()
+        -- Setelah load, kita perlu set manual variabel state berdasarkan nilai dari UI
+        if uiElements.InstantMine then instantMineEnabled = uiElements.InstantMine.CurrentValue end
+        if uiElements.AutoSell then autoSellEnabled = uiElements.AutoSell.CurrentValue end
+        if uiElements.AntiFall then antiFallDamageEnabled = uiElements.AntiFall.CurrentValue end
+        if uiElements.FloatPlatform then floatPlatformEnabled = uiElements.FloatPlatform.CurrentValue end
+        if uiElements.Fly then flyEnabled = uiElements.Fly.CurrentValue end
+        if uiElements.Walkspeed then walkspeedValue = uiElements.Walkspeed.CurrentValue end
+        Rayfield:Notify({Title="Pengaturan Dimuat", Content="Pengaturanmu telah dimuat ulang setelah respawn.", Image = "loader-circle"})
     end)
 end)
+
 
 --================================================================--
 --                         UI TABS & SECTIONS                       --
 --================================================================--
-local TabUtama = Window:Tab({ Text = "Main" })
-local SectionFarm = TabUtama:Section({ Text = "Otomatisasi Farm" })
-local SectionPlayer = TabUtama:Section({ Text = "Pengaturan Player", Side = "Right" })
+local TabUtama = Window:CreateTab("Main", "layout-template")
+local SectionFarm = TabUtama:CreateSection("Otomatisasi Farm")
+local SectionPlayer = TabUtama:CreateSection("Pengaturan Player")
 
-local TabTeleport = Window:Tab({ Text = "Teleportasi" })
-local SectionTeman = TabTeleport:Section({ Text = "Teleportasi Teman" })
+local TabTeleport = Window:CreateTab("Teleportasi", "map-pin")
+local SectionTeman = TabTeleport:CreateSection("Teleportasi Teman")
 
 --================================================================--
 --                         ELEMENTS                               --
 --================================================================--
-local uiElements = {}
-uiElements.InstantMine = SectionFarm:Toggle({ Text = "Instant Mine (Speed Only)", Default = false, Tooltip = "Aktifkan, lalu tahan klik untuk mining super cepat.", Callback = function(Value) instantMineEnabled = Value; if not Value then restoreToolStats() end end, })
-uiElements.AutoSell = SectionFarm:Toggle({ Text = "Auto Sell (15 detik)", Default = false, Callback = function(Value) autoSellEnabled = Value; if autoSellEnabled then task.spawn(function() while autoSellEnabled do pcall(function() local npc = workspace:FindFirstChild("Map", true) and workspace.Map:FindFirstChild("Layer 1", true) and workspace.Map["Layer 1"]:FindFirstChild("Npcs", true) and workspace.Map["Layer 1"].Npcs:FindFirstChild("Rei ' The professer", true) and workspace.Map["Layer 1"].Npcs["Rei ' The professer"]:FindFirstChild("Rei", true); local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool"); if npc and tool then game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SellAllInventory"):FireServer(npc, tool) end end); task.wait(15) end end) end end, })
-uiElements.Walkspeed = SectionPlayer:Slider({ Text = "Walkspeed", Default = 16, Minimum = 16, Maximum = 100, Callback = function(Value) walkspeedValue = Value end })
-uiElements.AntiFall = SectionPlayer:Toggle({ Text = "Anti Fall Damage", Default = false, Tooltip = "Mencegah damage saat jatuh.", Callback = function(Value) antiFallDamageEnabled = Value end, })
-uiElements.FloatPlatform = SectionPlayer:Toggle({
-    Text = "Float Platform", Default = false, Tooltip = "Berjalan di udara pada ketinggian yang sama.",
+uiElements.InstantMine = SectionFarm:CreateToggle({ Name = "Instant Mine (Speed Only)", CurrentValue = false, Flag = "InstantMine", Callback = function(state) instantMineEnabled = state; if not state then restoreToolStats() end end, })
+uiElements.AutoSell = SectionFarm:CreateToggle({ Name = "Auto Sell (15 detik)", CurrentValue = false, Flag = "AutoSell", Callback = function(state) autoSellEnabled = state; if autoSellEnabled then task.spawn(function() while autoSellEnabled do pcall(function() local npc = workspace:FindFirstChild("Map", true) and workspace.Map:FindFirstChild("Layer 1", true) and workspace.Map["Layer 1"]:FindFirstChild("Npcs", true) and workspace.Map["Layer 1"].Npcs:FindFirstChild("Rei ' The professer", true) and workspace.Map["Layer 1"].Npcs["Rei ' The professer"]:FindFirstChild("Rei", true); local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool"); if npc and tool then game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SellAllInventory"):FireServer(npc, tool) end end); task.wait(15) end end) end end, })
+uiElements.Walkspeed = SectionPlayer:CreateSlider({ Name = "Walkspeed", Range = {16, 100}, Increment = 1, Suffix = " speed", CurrentValue = 16, Flag = "Walkspeed", Callback = function(value) walkspeedValue = value end, })
+uiElements.AntiFall = SectionPlayer:CreateToggle({ Name = "Anti Fall Damage", CurrentValue = false, Flag = "AntiFall", Callback = function(state) antiFallDamageEnabled = state end, })
+uiElements.FloatPlatform = SectionPlayer:CreateToggle({
+    Name = "Float Platform", CurrentValue = false, Flag = "FloatPlatform",
     Callback = function(state)
         floatPlatformEnabled = state; local char = Player.Character
         if state and char and char:FindFirstChild("HumanoidRootPart") then
@@ -131,11 +143,20 @@ uiElements.FloatPlatform = SectionPlayer:Toggle({
         end
     end,
 })
-uiElements.Fly = SectionPlayer:Toggle({ Text = "Toggle Fly", Default = false, Tooltip = "Gunakan W/A/S/D/E/Q untuk terbang.", Callback = function(Value) flyEnabled = Value; if Value then startFly() else stopFly() end end, })
-uiElements.FlySpeed = SectionPlayer:Slider({ Text = "Kecepatan Terbang", Default = 50, Minimum = 10, Maximum = 200, Callback = function(Value) flySpeed = Value end })
+uiElements.Fly = SectionPlayer:CreateToggle({ Name = "Toggle Fly", CurrentValue = false, Flag = "Fly", Callback = function(state) flyEnabled = state; if state then startFly() else stopFly() end end, })
+uiElements.FlySpeed = SectionPlayer:CreateSlider({ Name = "Kecepatan Terbang", Range = {10, 200}, Increment = 5, Suffix = " speed", CurrentValue = 50, Flag = "FlySpeed", Callback = function(value) flySpeed = value end, })
+uiElements.FriendName = SectionTeman:CreateInput({ Name = "Username Teman", PlaceholderText = "Masukkan nama teman...", Flag = "FriendName" })
+SectionTeman:CreateButton({
+   Name = "Pindahkan Teman ke Saya",
+   Callback = function()
+        local myChar = Player.Character; local friendName = uiElements.FriendName.CurrentValue
+        if not (myChar and myChar.PrimaryPart) then Rayfield:Notify({Title="Gagal", Content="Karaktermu tidak ditemukan.", Image = "alert-triangle"}); return end
+        if not (friendName and friendName ~= "") then Rayfield:Notify({Title="Gagal", Content="Masukkan nama teman.", Image = "alert-triangle"}); return end
+        local friendPlayer = game:GetService("Players"):FindFirstChild(friendName)
+        if not (friendPlayer and friendPlayer.Character and friendPlayer.Character.PrimaryPart) then Rayfield:Notify({Title="Gagal", Content="Player '" .. friendName .. "' tidak ditemukan.", Image = "alert-triangle"}); return end
+        pcall(function() friendPlayer.Character:SetPrimaryPartCFrame(myChar.PrimaryPart.CFrame); Rayfield:Notify({Title="Berhasil", Content=friendName .. " telah dipindahkan.", Image = "user-check"}) end)
+   end,
+})
 
-local NamaTemanInput = SectionTeman:Input({ Placeholder = "Masukkan nama teman...", Flag = "FriendNameInput" })
-SectionTeman:Button({ Text = "Pindahkan Teman ke Saya", Callback = function() local myChar = Player.Character; local friendName = Library.Flags.FriendNameInput; if not (myChar and myChar:FindFirstChild("HumanoidRootPart")) then return end; if not (friendName and friendName ~= "") then return end; local friendPlayer = game:GetService("Players"):FindFirstChild(friendName); if not friendPlayer then return end; local friendChar = friendPlayer.Character; if not (friendChar and friendChar:FindFirstChild("HumanoidRootPart")) then return end; pcall(function() friendChar.HumanoidRootPart.CFrame = myChar.HumanoidRootPart.CFrame end) end, })
-
--- INISIALISASI
-TabUtama:Select()
+-- Memuat konfigurasi yang tersimpan di akhir
+Rayfield:LoadConfiguration()
