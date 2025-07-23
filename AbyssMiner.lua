@@ -1,5 +1,5 @@
 --================================================================--
---      SKRIP VERSI FINAL (RAYFIELD + SEMUA PERBAIKAN) - OLEH PARTNER CODING     --
+--      SKRIP VERSI FINAL (RAYFIELD + FIX) - OLEH PARTNER CODING     --
 --================================================================--
 
 -- Pemuatan Library yang Aman (Safe Loading)
@@ -17,6 +17,9 @@ end
 
 -- Variabel Global
 local Player = game:GetService("Players").LocalPlayer
+local locations = {}
+local locationFileName = "Rayfield_Locations.json"
+local locationFolderPath = "Rayfield/" 
 local originalToolStats = {}
 local lastKnownTool = nil
 
@@ -34,7 +37,7 @@ local Window = Rayfield:CreateWindow({
    Name = "Abyss Miner Menu (Rayfield)",
    LoadingTitle = "Memuat Abyss Miner Menu...",
    LoadingSubtitle = "oleh Partner Coding",
-   Theme = "Ocean", -- Tema Ocean sesuai permintaan
+   Theme = "Ocean",
    ToggleUIKeybind = Enum.KeyCode.RightShift,
    ConfigurationSaving = {
       Enabled = true,
@@ -65,27 +68,9 @@ game:GetService("RunService").Heartbeat:Connect(function()
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
-    -- Perbaikan Bug Walkspeed
-    if walkspeedValue and humanoid.WalkSpeed ~= walkspeedValue then
-        humanoid.WalkSpeed = walkspeedValue
-    end
-
-    -- Logika untuk Fly
-    if flying and char:FindFirstChild("HumanoidRootPart") then
-        local rootPart = char.HumanoidRootPart; local camera = workspace.CurrentCamera; local velocity = Vector3.new(0, 0, 0); local keybinds = game:GetService("UserInputService"); if keybinds:IsKeyDown(Enum.KeyCode.W) then velocity = camera.CFrame.LookVector * flySpeed end; if keybinds:IsKeyDown(Enum.KeyCode.S) then velocity = -camera.CFrame.LookVector * flySpeed end; if keybinds:IsKeyDown(Enum.KeyCode.A) then velocity = -camera.CFrame.RightVector * flySpeed end; if keybinds:IsKeyDown(Enum.KeyCode.D) then velocity = camera.CFrame.RightVector * flySpeed end; if keybinds:IsKeyDown(Enum.KeyCode.E) then velocity = Vector3.new(0, flySpeed, 0) end; if keybinds:IsKeyDown(Enum.KeyCode.Q) then velocity = Vector3.new(0, -flySpeed, 0) end; bodyVelocity.Velocity = velocity; bodyGyro.CFrame = camera.CFrame
-    end
-
-    -- Logika untuk Instant Mine
-    if instantMineEnabled then
-        local tool = char:FindFirstChildOfClass("Tool")
-        if tool and tool ~= lastKnownTool then restoreToolStats(); lastKnownTool = tool end
-        if tool then
-            if not originalToolStats[tool] then originalToolStats[tool] = { Speed = tool:FindFirstChild("Speed") and tool.Speed.Value } end
-            pcall(function() local speed = tool:FindFirstChild("Speed"); if speed then speed.Value = 0 end end)
-        else
-            restoreToolStats(); lastKnownTool = nil
-        end
-    end
+    if walkspeedValue and humanoid.WalkSpeed ~= walkspeedValue then humanoid.WalkSpeed = walkspeedValue end
+    if flying and char:FindFirstChild("HumanoidRootPart") then local rootPart = char.HumanoidRootPart; local camera = workspace.CurrentCamera; local velocity = Vector3.new(0, 0, 0); local keybinds = game:GetService("UserInputService"); if keybinds:IsKeyDown(Enum.KeyCode.W) then velocity = camera.CFrame.LookVector * flySpeed end; if keybinds:IsKeyDown(Enum.KeyCode.S) then velocity = -camera.CFrame.LookVector * flySpeed end; if keybinds:IsKeyDown(Enum.KeyCode.A) then velocity = -camera.CFrame.RightVector * flySpeed end; if keybinds:IsKeyDown(Enum.KeyCode.D) then velocity = camera.CFrame.RightVector * flySpeed end; if keybinds:IsKeyDown(Enum.KeyCode.E) then velocity = Vector3.new(0, flySpeed, 0) end; if keybinds:IsKeyDown(Enum.KeyCode.Q) then velocity = Vector3.new(0, -flySpeed, 0) end; bodyVelocity.Velocity = velocity; bodyGyro.CFrame = camera.CFrame end
+    if instantMineEnabled then local tool = char:FindFirstChildOfClass("Tool"); if tool and tool ~= lastKnownTool then restoreToolStats(); lastKnownTool = tool end; if tool then if not originalToolStats[tool] then originalToolStats[tool] = { Speed = tool:FindFirstChild("Speed") and tool.Speed.Value } end; pcall(function() local speed = tool:FindFirstChild("Speed"); if speed then speed.Value = 0 end end) else restoreToolStats(); lastKnownTool = nil end end
 end)
 
 -- Fungsi Anti Fall Damage & Auto-Respawn
@@ -96,18 +81,17 @@ Player.CharacterAdded:Connect(function(char)
     
     task.wait(2)
     pcall(function()
-        Rayfield:LoadConfiguration()
-        -- Setelah load, kita perlu set manual variabel state berdasarkan nilai dari UI
-        if uiElements.InstantMine then instantMineEnabled = uiElements.InstantMine.CurrentValue end
-        if uiElements.AutoSell then autoSellEnabled = uiElements.AutoSell.CurrentValue end
-        if uiElements.AntiFall then antiFallDamageEnabled = uiElements.AntiFall.CurrentValue end
-        if uiElements.FloatPlatform then floatPlatformEnabled = uiElements.FloatPlatform.CurrentValue end
-        if uiElements.Fly then flyEnabled = uiElements.Fly.CurrentValue end
-        if uiElements.Walkspeed then walkspeedValue = uiElements.Walkspeed.CurrentValue end
+        -- !-- PERBAIKAN: Baris LoadConfiguration() dihapus dari sini untuk mencegah konflik --!
+        -- Memuat ulang status dari variabel, bukan dari file
+        if uiElements.InstantMine then instantMineEnabled = uiElements.InstantMine.CurrentValue; uiElements.InstantMine:Set(instantMineEnabled) end
+        if uiElements.AutoSell then autoSellEnabled = uiElements.AutoSell.CurrentValue; uiElements.AutoSell:Set(autoSellEnabled) end
+        if uiElements.AntiFall then antiFallDamageEnabled = uiElements.AntiFall.CurrentValue; uiElements.AntiFall:Set(antiFallDamageEnabled) end
+        if uiElements.FloatPlatform then floatPlatformEnabled = uiElements.FloatPlatform.CurrentValue; uiElements.FloatPlatform:Set(floatPlatformEnabled) end
+        if uiElements.Fly then flyEnabled = uiElements.Fly.CurrentValue; uiElements.Fly:Set(flyEnabled) end
+        if uiElements.Walkspeed then walkspeedValue = uiElements.Walkspeed.CurrentValue; uiElements.Walkspeed:Set(walkspeedValue) end
         Rayfield:Notify({Title="Pengaturan Dimuat", Content="Pengaturanmu telah dimuat ulang setelah respawn.", Image = "loader-circle"})
     end)
 end)
-
 
 --================================================================--
 --                         UI TABS & SECTIONS                       --
@@ -158,5 +142,8 @@ SectionTeman:CreateButton({
    end,
 })
 
--- Memuat konfigurasi yang tersimpan di akhir
+-- Hapus fitur simpan lokasi via Json
+-- Semua elemen dan fungsi terkait telah dihapus
+
+-- Terakhir, muat konfigurasi yang tersimpan
 Rayfield:LoadConfiguration()
