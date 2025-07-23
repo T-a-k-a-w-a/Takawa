@@ -1,8 +1,8 @@
 --================================================================--
---      SKRIP VERSI FINAL (WINDUI + ANTI-CHEAT) - OLEH PARTNER CODING     --
+--      SKRIP VERSI SEDERHANA (WINDUI + SAFE LOAD) - OLEH PARTNER CODING     --
 --================================================================--
 
--- Pemuatan Library yang Aman (Safe Loading)
+-- !-- PERBAIKAN: Menggunakan Pemuatan Library yang Aman (Safe Loading) --!
 local success, WindUI = pcall(function()
     return loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 end)
@@ -10,7 +10,7 @@ end)
 if not success or not WindUI then
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "Script Error",
-        Text = "Gagal memuat WindUI Library. Periksa koneksi atau coba jalankan ulang skrip.",
+        Text = "Gagal memuat WindUI Library. Periksa konsol (F9) untuk detail.",
         Duration = 10
     })
     warn("WindUI Gagal Dimuat! Error: " .. tostring(WindUI))
@@ -19,9 +19,6 @@ end
 
 -- Variabel Global
 local Player = game:GetService("Players").LocalPlayer
-local locations = {}
-local locationFileName = "WindUI_Locations.json"
-local locationFolderPath = "/storage/emulated/0/RonixExploit/workspace/"
 local originalToolStats = {}
 local lastKnownTool = nil
 
@@ -36,9 +33,9 @@ local platformY = 0
 
 -- Buat Jendela Utama
 local Window = WindUI:CreateWindow({
-    Title = "Abyss Miner Enhanced",
+    Title = "Abyss Miner Menu",
     Author = "Partner Coding",
-    Folder = "AbyssMinerWindUI",
+    Folder = "AbyssMinerWindUI_Simple",
     Size = UDim2.fromOffset(580, 480),
     Theme = "Dark",
     User = { Enabled = true },
@@ -81,19 +78,14 @@ Player.CharacterAdded:Connect(function(char)
     
     task.wait(2)
     pcall(function()
-        if uiElements.InstantMine and instantMineEnabled then uiElements.InstantMine:Set(true) end
-        if uiElements.AutoSell and autoSellEnabled then uiElements.AutoSell:Set(true) end
-        if uiElements.AntiFall and antiFallDamageEnabled then uiElements.AntiFall:Set(true) end
-        if uiElements.FloatPlatform and floatPlatformEnabled then uiElements.FloatPlatform:Set(true) end
-        if uiElements.Fly and flyEnabled then uiElements.Fly:Set(true) end
+        if instantMineEnabled and uiElements.InstantMine then uiElements.InstantMine:Set(true) end
+        if autoSellEnabled and uiElements.AutoSell then uiElements.AutoSell:Set(true) end
+        if antiFallDamageEnabled and uiElements.AntiFall then uiElements.AntiFall:Set(true) end
+        if floatPlatformEnabled and uiElements.FloatPlatform then uiElements.FloatPlatform:Set(true) end
+        if flyEnabled and uiElements.Fly then uiElements.Fly:Set(true) end
         if uiElements.Walkspeed then uiElements.Walkspeed:Set(walkspeedValue) end
-        WindUI:Notify({Title="Pengaturan Dimuat", Content="Pengaturanmu telah dimuat ulang setelah respawn."})
     end)
 end)
-
--- Fungsi file system lokasi
-local function saveLocationsToFile() if writefile then pcall(function() if not isfolder(locationFolderPath) then makefolder(locationFolderPath) end; writefile(locationFolderPath .. locationFileName, game:GetService("HttpService"):JSONEncode(locations)) end) end
-local function loadLocationsFromFile() if isfile and readfile and isfolder(locationFolderPath) then if isfile(locationFolderPath .. locationFileName) then local s, d = pcall(function() return game:GetService("HttpService"):JSONDecode(readfile(locationFolderPath .. locationFileName)) end); if s and type(d) == "table" then locations = d end end end
 
 --================================================================--
 --                         UI SECTIONS & TABS                       --
@@ -104,9 +96,6 @@ local TabPlayer = SectionUtama:Tab({ Title = "Player", Icon = "user" })
 
 local SectionNavigasi = Window:Section({ Title = "Navigasi" })
 local TabTeleport = SectionNavigasi:Tab({ Title = "Teleportasi", Icon = "map-pin" })
-
-local SectionAdvanced = Window:Section({ Title = "Advanced" })
-local TabBypass = SectionAdvanced:Tab({ Title = "Bypass", Icon = "shield" })
 
 Window:SelectTab(1)
 
@@ -133,34 +122,7 @@ uiElements.FloatPlatform = TabPlayer:Toggle({ Name = "Float Platform", Desc = "B
     end
 end })
 uiElements.Fly = TabPlayer:Toggle({ Name = "Toggle Fly", Desc = "Gunakan W/A/S/D/E/Q untuk terbang.", Default = false, Callback = function(state) flyEnabled = state; if state then startFly() else stopFly() end end })
-local LocationDropdown; local function updateLocationsDropdown() local options = {}; for i, locData in ipairs(locations) do table.insert(options, locData.Name) end; if LocationDropdown then LocationDropdown:Refresh(options) end end
-TabTeleport:Button({ Name = "Simpan Lokasi Saat Ini", Callback = function()
-    Window:Dialog({
-        Title = "Nama Lokasi", Content = "Masukkan nama untuk lokasi ini:", Buttons = {{ Title = "Batal" }},
-        Input = { Placeholder = "Contoh: Base", Callback = function(text)
-            if text and text ~= "" and Player.Character and Player.Character.PrimaryPart then
-                local pos = Player.Character.PrimaryPart.Position
-                table.insert(locations, {Name = text, Pos = {x = pos.X, y = pos.Y, z = pos.Z}})
-                saveLocationsToFile(); updateLocationsDropdown()
-                WindUI:Notify({Title="Lokasi Disimpan", Content= text .. " berhasil disimpan."})
-            end
-        end }
-    })
-end })
-loadLocationsFromFile(); local dropdownOptions = {}; for i, locData in ipairs(locations) do table.insert(dropdownOptions, locData.Name) end
-LocationDropdown = TabTeleport:Dropdown({ Name = "Pilih Lokasi", Values = dropdownOptions, Value = dropdownOptions[1] or nil, Callback = function(value) end })
-TabTeleport:Button({ Name = "Set Spawn di Lokasi Terpilih", Callback = function()
-    local selectedName = LocationDropdown.Value; local selectedLocData
-    for _, locData in ipairs(locations) do if locData.Name == selectedName then selectedLocData = locData; break end end
-    if selectedLocData then
-        pcall(function()
-            game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SetSpawnPoint"):FireServer(Vector3.new(selectedLocData.Pos.x, selectedLocData.Pos.y, selectedLocData.Pos.z))
-            WindUI:Notify({Title="Spawn Point Diatur", Content="Spawn diatur di " .. selectedName .. "."})
-        end)
-    else WindUI:Notify({Title="Gagal", Content="Pilih lokasi yang valid terlebih dahulu."}) end
-end })
-TabTeleport:Button({ Name = "RESET KARAKTER (TELEPORT)", Desc = "Gunakan ini setelah 'Set Spawn'.", Callback = function() if Player.Character and Player.Character:FindFirstChild("Humanoid") then Player.Character.Humanoid.Health = 0 end end })
-TabTeleport:Divider()
+
 local FriendNameInput = TabTeleport:Input({ Name = "Username Teman", Placeholder = "Masukkan nama...", Value = "" })
 TabTeleport:Button({ Name = "Pindahkan Teman ke Saya", Callback = function()
     local myChar = Player.Character; local friendName = FriendNameInput.Value
@@ -170,49 +132,3 @@ TabTeleport:Button({ Name = "Pindahkan Teman ke Saya", Callback = function()
     if not (friendPlayer and friendPlayer.Character and friendPlayer.Character.PrimaryPart) then WindUI:Notify({Title="Gagal", Content="Player '" .. friendName .. "' tidak ditemukan."}); return end
     pcall(function() friendPlayer.Character:SetPrimaryPartCFrame(myChar.PrimaryPart.CFrame); WindUI:Notify({Title="Berhasil", Content=friendName .. " telah dipindahkan."}) end)
 end })
-
--- !-- FITUR ANTI-CHEAT MILIKMU DITAMBAHKAN DI SINI --!
-TabBypass:Paragraph({ Title = "Bypass Anti-Cheat", Desc = "Sistem bypass ini akan memodifikasi fungsi inti game. Aktifkan hanya setelah UI muncul sepenuhnya." })
-TabBypass:Button({
-    Name = "Activate Anti-Cheat Bypass",
-    Desc = "Mengaktifkan sistem anti-kick, anti-ban, dan spoofing.",
-    Callback = function()
-        local success, err = pcall(function()
-            local mt = getrawmetatable(game)
-            local oldIndex = mt.__index
-            local oldNamecall = mt.__namecall
-            setreadonly(mt, false)
-
-            local blockedRemotes = {"AntiCheat", "AC", "Detection", "BanRemote", "KickRemote", "LogRemote", "ReportRemote", "FlagRemote", "SecurityRemote"}
-            local spoofedMethods = {"kick", "Kick", "remove", "Remove", "destroy", "Destroy"}
-
-            mt.__namecall = newcclosure(function(self, ...)
-                local method = getnamecallmethod()
-                if typeof(self) == "Instance" then
-                    local name = tostring(self)
-                    for _, blocked in pairs(blockedRemotes) do if string.find(name:lower(), blocked:lower()) then return wait(9e9) end end
-                    for _, spoofed in pairs(spoofedMethods) do if method:lower() == spoofed:lower() then return wait(9e9) end end
-                end
-                return oldNamecall(self, ...)
-            end)
-
-            mt.__index = newcclosure(function(self, key)
-                if typeof(self) == "Instance" and self.ClassName == "Humanoid" and key == "PlatformStand" then
-                    return false
-                end
-                if typeof(self) == "Instance" and self.ClassName == "HumanoidRootPart" and (key == "AssemblyLinearVelocity" or key == "Velocity") then
-                    return Vector3.new(0, -50, 0)
-                end
-                return oldIndex(self, key)
-            end)
-            setreadonly(mt, true)
-        end)
-        
-        if success then
-            WindUI:Notify({ Title = "Bypass Diaktifkan", Content = "Sistem anti-cheat berhasil diaktifkan.", Icon = "shield-check" })
-        else
-            WindUI:Notify({ Title = "Bypass Gagal", Content = "Gagal mengaktifkan bypass. Lihat konsol untuk error.", Icon = "shield-x" })
-            warn("Bypass Gagal: ", err)
-        end
-    end
-})
