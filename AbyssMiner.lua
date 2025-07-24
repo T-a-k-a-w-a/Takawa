@@ -27,15 +27,18 @@ pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", { Tit
 local Player = game:GetService("Players").LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
 
 -- Variabel Status Fitur
-local instantMineEnabled, antiFallDamageEnabled, flyEnabled, autoSellEnabled = false, false, false, false
+local instantMineEnabled, antiFallDamageEnabled, flyEnabled, autoSellEnabled, autoRankUpEnabled = false, false, false, false, false
 local walkspeedValue = 16
 local flySpeed = 50 
 local floatPlatformEnabled = false
 local floatPlatform, platformConnection, platformY = nil, nil, 0
 local originalToolStats, lastKnownTool = {}, nil
+local bringWeld, attachWeld = nil, nil
 local selectedBackpackItems, selectedStorageItems = {}, {}
+local originalStreamingEnabled = workspace.StreamingEnabled
 
 -- Buat Jendela Utama
 local screenSize = workspace.CurrentCamera.ViewportSize
@@ -54,6 +57,7 @@ pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", { Tit
 local flying = false; local bodyVelocity, bodyGyro; local originalMouseBehavior
 local function startFly() local char = Player.Character; if not char or not char:FindFirstChild("HumanoidRootPart") or flying then return end; local rootPart = char.HumanoidRootPart; bodyGyro = Instance.new("BodyGyro", rootPart); bodyGyro.P = 9e4; bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9); bodyGyro.CFrame = rootPart.CFrame; bodyVelocity = Instance.new("BodyVelocity", rootPart); bodyVelocity.Velocity = Vector3.new(0, 0, 0); bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9); flying = true; Player.DevEnableMouseLock = true; originalMouseBehavior = UserInputService.MouseBehavior; UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter end
 local function stopFly() if bodyGyro then bodyGyro:Destroy() end; if bodyVelocity then bodyVelocity:Destroy() end; flying = false; Player.DevEnableMouseLock = false; if originalMouseBehavior then UserInputService.MouseBehavior = originalMouseBehavior end end
+local function findPlayerByUsername(name) local targetName = name:lower(); if not targetName or targetName == "" then return nil end; for _, player in ipairs(game:GetService("Players"):GetPlayers()) do if string.find(player.Name:lower(), targetName, 1, true) then return player end end; return nil end
 local function restoreToolStats() if lastKnownTool and originalToolStats[lastKnownTool] then local tool = lastKnownTool; local stats = originalToolStats[lastKnownTool]; pcall(function() if stats.Speed and tool:FindFirstChild("Speed") then tool.Speed.Value = stats.Speed end end); originalToolStats[lastKnownTool] = nil end end
 
 RunService.Heartbeat:Connect(function()
@@ -78,19 +82,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-Player.CharacterAdded:Connect(function(char) 
-    local humanoid = char:WaitForChild("Humanoid"); humanoid.StateChanged:Connect(function(old, new) if new == Enum.HumanoidStateType.Landed and antiFallDamageEnabled then pcall(function() humanoid:ChangeState(Enum.HumanoidStateType.Swimming) end) end end)
-    task.wait(2)
-    pcall(function()
-        if instantMineEnabled and uiElements.InstantMine then uiElements.InstantMine:Set(true) end
-        if autoSellEnabled and uiElements.AutoSell then uiElements.AutoSell:Set(true) end
-        if antiFallDamageEnabled and uiElements.AntiFall then uiElements.AntiFall:Set(true) end
-        if floatPlatformEnabled and uiElements.FloatPlatform then uiElements.FloatPlatform:Set(true) end
-        if flyEnabled and uiElements.Fly then uiElements.Fly:Set(true) end
-        if uiElements.Walkspeed then uiElements.Walkspeed:Set(walkspeedValue) end
-    end)
-end)
-
 --================================================================--
 --                         UI TABS & ELEMENTS                       --
 --================================================================--
@@ -103,7 +94,49 @@ local TabAdvanced = Window:Tab({ Title = "Advanced", Icon = "shield" })
 Window:SelectTab(1)
 
 uiElements.InstantMine = TabMain:Toggle({ Title = "Instant Mine (Speed Only)", Desc = "Aktifkan, lalu tahan klik untuk mining super cepat.", Default = false, Callback = function(state) instantMineEnabled = state; if not state then restoreToolStats() end end })
-uiElements.AutoSell = TabMain:Toggle({ Title = "Auto Sell (15 detik)", Desc = "Menjual item non-favorit setiap 15 detik.", Default = false, Callback = function(state) autoSellEnabled = state; if autoSellEnabled then task.spawn(function() while autoSellEnabled do pcall(function() local npc = workspace:FindFirstChild("Map", true) and workspace.Map:FindFirstChild("Layer 1", true) and workspace.Map["Layer 1"]:FindFirstChild("Npcs", true) and workspace.Map["Layer 1"].Npcs:FindFirstChild("Rei ' The professer", true) and workspace.Map["Layer 1"].Npcs["Rei ' The professer"]:FindFirstChild("Rei", true); local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool"); if npc and tool then game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SellAllInventory"):FireServer(npc, tool) end end); task.wait(15) end end) end end })
+uiElements.AutoSell = TabMain:Toggle({ Title = "Auto Sell (15 detik)", Desc = "Otomatis menjual jika dekat dengan NPC.", Default = false, Callback = function(state) 
+    autoSellEnabled = state
+    if autoSellEnabled then
+        task.spawn(function()
+            while autoSellEnabled do
+                pcall(function()
+                    local npc = workspace:FindFirstChild("Map", true) and workspace.Map:FindFirstChild("Layer 1", true) and workspace.Map["Layer 1"]:FindFirstChild("Npcs", true) and workspace.Map["Layer 1"].Npcs:FindFirstChild("Rei ' The professer", true) and workspace.Map["Layer 1"].Npcs["Rei ' The professer"]:FindFirstChild("Rei", true)
+                    local char = Player.Character
+                    if npc and char and char:FindFirstChild("HumanoidRootPart") then
+                        local distance = (npc:GetPrimaryPartCFrame().Position - char.PrimaryPart.Position).Magnitude
+                        if distance < 100 then local tool = char:FindFirstChildOfClass("Tool") or Player.Backpack:FindFirstChildOfClass("Tool"); if tool then game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SellAllInventory"):FireServer(npc, tool) end end
+                    end
+                end)
+                task.wait(15)
+            end
+        end)
+    end
+end })
+uiElements.SellSingle = TabMain:Button({ Title = "Jual Item di Tangan", Desc = "Menjual item yang sedang dipegang (harus dekat NPC).", Callback = function() 
+    pcall(function() 
+        local npc = workspace:FindFirstChild("Map", true) and workspace.Map:FindFirstChild("Layer 1", true) and workspace.Map["Layer 1"]:FindFirstChild("Npcs", true) and workspace.Map["Layer 1"].Npcs:FindFirstChild("Rei ' The professer", true) and workspace.Map["Layer 1"].Npcs["Rei ' The professer"]:FindFirstChild("Rei", true)
+        if npc then game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SellSingleone"):FireServer(npc, npc.HumanoidRootPart:WaitForChild("Dialogue")) end 
+    end) 
+end})
+TabMain:Button({ Title = "Jual Semua (Jarak Jauh)", Desc = "Menggunakan metode teleport cepat untuk menjual dari mana saja.", Callback = function()
+    local char = Player.Character; if not (char and char:FindFirstChild("HumanoidRootPart")) then WindUI:Notify({Title="Gagal", Content="Karakter tidak ditemukan."}); return end
+    local rootPart = char.HumanoidRootPart; local originalCFrame = rootPart.CFrame
+    local npc = workspace:FindFirstChild("Map", true) and workspace.Map:FindFirstChild("Layer 1", true) and workspace.Map["Layer 1"]:FindFirstChild("Npcs", true) and workspace.Map["Layer 1"].Npcs:FindFirstChild("Rei ' The professer", true) and workspace.Map["Layer 1"].Npcs["Rei ' The professer"]:FindFirstChild("Rei", true)
+    local tool = char:FindFirstChildOfClass("Tool") or Player.Backpack:FindFirstChildOfClass("Tool")
+    if not (npc and tool) then WindUI:Notify({Title="Gagal", Content="NPC atau Tool tidak ditemukan."}); return end
+    pcall(function() rootPart.CFrame = npc:GetPrimaryPartCFrame() * CFrame.new(0, 0, 5); task.wait(0.1); game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SellAllInventory"):FireServer(npc, tool); task.wait(0.1); rootPart.CFrame = originalCFrame; WindUI:Notify({Title="Berhasil", Content="Semua item berhasil dijual dari jarak jauh!"}) end)
+end})
+TabMain:Button({ Title = "Buka/Tutup Konsol (F9)", Desc = "Membuka konsol developer untuk debugging.", Callback = function() pcall(function() local devConsole = CoreGui:FindFirstChild("DevConsole"); if devConsole then devConsole.Enabled = not devConsole.Enabled end end) end})
+uiElements.BypassPause = TabMain:Toggle({ Title = "Bypass Gameplay Paused", Desc = "Mencegah layar 'Gameplay Paused' muncul saat teleport/terbang.", Default = false, Callback = function(state)
+    if state then
+        pcall(function() local networkPauseScript = CoreGui:FindFirstChild("RobloxGui", true) and CoreGui.RobloxGui:FindFirstChild("CoreScripts/NetworkPause"); if networkPauseScript then networkPauseScript:Destroy() end end)
+        workspace.StreamingEnabled = false
+        WindUI:Notify({Title="Bypass", Content="Bypass Gameplay Paused: AKTIF"})
+    else
+        workspace.StreamingEnabled = originalStreamingEnabled
+        WindUI:Notify({Title="Bypass", Content="Bypass Gameplay Paused: NONAKTIF"})
+    end
+end})
 
 pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", { Title = "Memuat Skrip...", Text = "50% - Fitur Main selesai dimuat.", Duration = 2 }) end)
 
@@ -123,7 +156,7 @@ pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", { Tit
 
 local RankInfoParagraph = TabRankUp:Paragraph({ Title = "Informasi Rank", Desc = "Klik 'Tampilkan Info Rank' untuk memuat data terbaru." })
 TabRankUp:Button({
-    Title = "Tampilkan/Perbarui Info Rank", Desc = "Membaca data dari GUI asli dan menampilkannya di sini.",
+    Title = "Tampilkan/Perbarui Info Rank", Desc = "Membaca data dari GUI asli. Pastikan di layer yang sama dengan NPC Karl.",
     Callback = function()
         local karl = workspace:FindFirstChild("Map", true) and workspace.Map:FindFirstChild("Layer 1", true) and workspace.Map["Layer 1"]:FindFirstChild("Npcs", true) and workspace.Map["Layer 1"].Npcs:FindFirstChild("Karl"); if not karl then return end
         game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("RankUpGui"):FireServer(karl, karl.HumanoidRootPart:WaitForChild("Dialogue"))
@@ -135,6 +168,7 @@ TabRankUp:Button({
 })
 local rankUpDebounce = false
 TabRankUp:Button({ Title = "Rank Up", Desc = "Mencoba untuk menaikkan rank jika item sudah cukup.", Callback = function() if rankUpDebounce then WindUI:Notify({Title="Cooldown", Content="Harap tunggu sebentar.", Icon="hourglass"}); return end; rankUpDebounce = true; pcall(function() game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("RankUP"):FireServer() end); WindUI:Notify({ Title = "Rank Up", Content = "Permintaan Rank Up telah dikirim!", Icon = "arrow-up-circle" }); task.wait(1); rankUpDebounce = false end})
+uiElements.AutoRankUp = TabRankUp:Toggle({ Title = "Auto Rank Up", Desc = "(Fitur dalam pengembangan)", Default = false, Callback = function(state) autoRankUpEnabled = state; end })
 
 local backpackFrame = TabStorage:Paragraph({Title = "Backpack", Desc = ""})
 local storageFrame = TabStorage:Paragraph({Title = "Storage", Desc = ""})
@@ -146,8 +180,7 @@ local function refreshStorageUI()
     local storageFolder = Player:FindFirstChild("HiddenStats", true) and Player.HiddenStats:FindFirstChild("Storage"); if storageFolder then for _, item in ipairs(storageFolder:GetChildren()) do local itemToggle = TabStorage:Toggle({ Title = item.Name, Parent = storageFrame.Container, Default = false, Callback = function(state) selectedStorageItems[item] = state end }); itemToggle.ToggleFrame.Name = "ItemToggle" end end
 end
 TabStorage:Button({ Title = "Pindahkan SEMUA Mineral ke Storage", Desc="Memindahkan semua mineral (bukan tool utama) ke storage.", Callback = function()
-    local toolBlacklist = {["Main Tool"]=true, ["Equipment"]=true, ["Collection Book"]=true, ["Whistle"]=true}
-    local itemsToMove = {}; for _, item in ipairs(Player.Backpack:GetChildren()) do if item:IsA("Tool") and not toolBlacklist[item.Name] then table.insert(itemsToMove, item) end end
+    local toolBlacklist = {["Main Tool"]=true, ["Equipment"]=true, ["Collection Book"]=true, ["Whistle"]=true}; local itemsToMove = {}; for _, item in ipairs(Player.Backpack:GetChildren()) do if item:IsA("Tool") and not toolBlacklist[item.Name] then table.insert(itemsToMove, item) end end
     for _, item in ipairs(itemsToMove) do pcall(function() game:GetService("ReplicatedStorage").RemoteEvent.Storage:FireServer(false, item) end); task.wait() end
     WindUI:Notify({Title="Storage", Content="Semua mineral telah dipindahkan."}); task.wait(0.5); refreshStorageUI()
 end})
@@ -161,42 +194,4 @@ end})
 TabStorage:Button({ Title = "Refresh Daftar", Desc = "Memuat ulang daftar item.", Callback = refreshStorageUI })
 
 local PlayerDropdown; local function refreshPlayerList() local playerNames = {}; for _, p in ipairs(game:GetService("Players"):GetPlayers()) do if p ~= Player then table.insert(playerNames, p.Name) end end; if PlayerDropdown then PlayerDropdown:Refresh(playerNames) else PlayerDropdown = TabTeleport:Dropdown({ Title = "Pilih Pemain (Username)", Values = playerNames, Value = nil }) end end
-refreshPlayerList(); game:GetService("Players").PlayerAdded:Connect(refreshPlayerList); game:GetService("Players").PlayerRemoving:Connect(refreshPlayerList)
-TabTeleport:Button({ Title = "Refresh Daftar Pemain", Callback = refreshPlayerList })
-TabTeleport:Button({ Title = "Pindahkan Teman ke Saya", Callback = function()
-    local myChar = Player.Character; local friendName = PlayerDropdown.Value; if not (myChar and myChar.PrimaryPart) then WindUI:Notify({Title="Gagal", Content="Karaktermu tidak ditemukan."}); return end
-    if not friendName then WindUI:Notify({Title="Gagal", Content="Pilih pemain dari daftar."}); return end
-    local friendPlayer = game:GetService("Players"):FindFirstChild(friendName); if not (friendPlayer and friendPlayer.Character and friendPlayer.Character.PrimaryPart) then WindUI:Notify({Title="Gagal", Content="Player '" .. friendName .. "' tidak ditemukan."}); return end
-    pcall(function() friendPlayer.Character:SetPrimaryPartCFrame(myChar.PrimaryPart.CFrame); WindUI:Notify({Title="Berhasil", Content=friendName .. " telah dipindahkan."}) end)
-end })
-
-TabAdvanced:Paragraph({ Title = "Bypass Anti-Cheat", Desc = "Sistem bypass ini akan memodifikasi fungsi inti game." })
-TabAdvanced:Button({
-    Title = "Activate Anti-Cheat Bypass", Desc = "Mengaktifkan sistem anti-kick dan spoofing yang aman.",
-    Callback = function()
-        local success, err = pcall(function()
-            local mt = getrawmetatable(game); local oldIndex = mt.__index; setreadonly(mt, false)
-            mt.__index = newcclosure(function(self, key)
-                if typeof(self) == "Instance" and self.ClassName == "Humanoid" and key == "PlatformStand" then return false end
-                if typeof(self) == "Instance" and self.ClassName == "HumanoidRootPart" and (key == "AssemblyLinearVelocity" or key == "Velocity") then return Vector3.new(0, -50, 0) end
-                return oldIndex(self, key)
-            end)
-            setreadonly(mt, true)
-        end)
-        if success then WindUI:Notify({ Title = "Bypass Diaktifkan", Content = "Sistem bypass aman berhasil diaktifkan.", Icon = "shield-check" })
-        else WindUI:Notify({ Title = "Bypass Gagal", Content = "Gagal mengaktifkan bypass.", Icon = "shield-x" }); warn("Bypass Gagal: ", err) end
-    end
-})
-
-pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", { Title = "Memuat Skrip...", Text = "90% - Finalisasi...", Duration = 2 }) end)
-
--- INISIALISASI
-refreshStorageUI()
-
-local endTime = tick()
-local duration = string.format("%.3f", endTime - startTime)
-pcall(function() 
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Selesai!", Text = "100% - Skrip berhasil dimuat dalam " .. duration .. " detik.", Duration = 8
-    })
-end)
+refreshPla
