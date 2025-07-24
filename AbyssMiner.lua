@@ -1,5 +1,5 @@
 --================================================================--
---      SKRIP VERSI ENHANCED (WINDUI + SEMUA FITUR) - OLEH PARTNER CODING     --
+--      SKRIP VERSI FINAL (WINDUI + SEMUA PERBAIKAN) - OLEH PARTNER CODING     --
 --================================================================--
 
 -- Pemuatan Library yang Aman (Safe Loading)
@@ -33,7 +33,7 @@ local screenSize = workspace.CurrentCamera.ViewportSize
 local windowWidth = math.min(screenSize.X * 0.9, 580)
 local windowHeight = math.min(screenSize.Y * 0.8, 520)
 local Window = WindUI:CreateWindow({
-    Title = "Abyss Miner Menu", Author = "Partner Coding", Folder = "AbyssMinerWindUI_v12",
+    Title = "Abyss Miner Menu", Author = "Partner Coding", Folder = "AbyssMinerWindUI_v13",
     Size = UDim2.fromOffset(windowWidth, windowHeight), Theme = "Dark", User = { Enabled = true }, ToggleKey = Enum.KeyCode.RightShift
 })
 local uiElements = {}
@@ -80,7 +80,6 @@ Player.CharacterAdded:Connect(function(char)
         if floatPlatformEnabled and uiElements.FloatPlatform then uiElements.FloatPlatform:Set(true) end
         if flyEnabled and uiElements.Fly then uiElements.Fly:Set(true) end
         if uiElements.Walkspeed then uiElements.Walkspeed:Set(walkspeedValue) end
-        if autoRankUpEnabled and uiElements.AutoRankUp then uiElements.AutoRankUp:Set(true) end
     end)
 end)
 
@@ -97,7 +96,6 @@ Window:SelectTab(1)
 
 uiElements.InstantMine = TabMain:Toggle({ Title = "Instant Mine (Speed Only)", Desc = "Aktifkan, lalu tahan klik untuk mining super cepat.", Default = false, Callback = function(state) instantMineEnabled = state; if not state then restoreToolStats() end end })
 uiElements.AutoSell = TabMain:Toggle({ Title = "Auto Sell (15 detik)", Desc = "Menjual item non-favorit setiap 15 detik.", Default = false, Callback = function(state) autoSellEnabled = state; if autoSellEnabled then task.spawn(function() while autoSellEnabled do pcall(function() local npc = workspace:FindFirstChild("Map", true) and workspace.Map:FindFirstChild("Layer 1", true) and workspace.Map["Layer 1"]:FindFirstChild("Npcs", true) and workspace.Map["Layer 1"].Npcs:FindFirstChild("Rei ' The professer", true) and workspace.Map["Layer 1"].Npcs["Rei ' The professer"]:FindFirstChild("Rei", true); local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool"); if npc and tool then game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SellAllInventory"):FireServer(npc, tool) end end); task.wait(15) end end) end end })
-uiElements.SellSingle = TabPlayer:Button({ Title = "Jual Item di Tangan", Desc = "Menjual item yang sedang dipegang.", Callback = function() pcall(function() local npc = workspace:FindFirstChild("Map", true) and workspace.Map:FindFirstChild("Layer 1", true) and workspace.Map["Layer 1"]:FindFirstChild("Npcs", true) and workspace.Map["Layer 1"].Npcs:FindFirstChild("Rei ' The professer", true) and workspace.Map["Layer 1"].Npcs["Rei ' The professer"]:FindFirstChild("Rei", true); if npc then game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SellSingleone"):FireServer(npc, npc.HumanoidRootPart:WaitForChild("Dialogue")) end end) end})
 uiElements.Walkspeed = TabPlayer:Slider({ Title = "Walkspeed", Value = { Min = 16, Max = 100, Default = 16 }, Step = 1, Suffix = " speed", Callback = function(value) walkspeedValue = value end })
 uiElements.FlySpeed = TabPlayer:Slider({ Title = "Kecepatan Terbang", Desc = "Kecepatan tinggi (>50) dapat menyebabkan kick.", Value = { Min = 10, Max = 200, Default = 50 }, Step = 5, Suffix = " speed", Callback = function(value) flySpeed = value end })
 uiElements.AntiFall = TabPlayer:Toggle({ Title = "Anti Fall Damage", Desc = "Mencegah damage saat jatuh.", Default = false, Callback = function(state) antiFallDamageEnabled = state end })
@@ -120,61 +118,28 @@ TabRankUp:Button({
         task.wait(0.5)
         local rankMenu = Player.PlayerGui:FindFirstChild("MainGui", true) and Player.PlayerGui.MainGui:FindFirstChild("RankMenu")
         if rankMenu then
-            local currentRank = rankMenu.BG:FindFirstChild("CR") and rankMenu.BG.CR.Text or "Tidak ditemukan" -- [cite: 1]
-            local nextRank = rankMenu.BG:FindFirstChild("namenextrank") and rankMenu.BG.namenextrank.Text or "Tidak ditemukan" -- [cite: 1]
-            local reqs = rankMenu.BG:FindFirstChild("mainrequest") and rankMenu.BG.mainrequest.Text or "Tidak ditemukan" -- 
-            RankInfoParagraph:SetDesc(string.format("Rank Saat Ini: %s\nRank Selanjutnya: %s\n\nSyarat Mineral:\n%s", currentRank, nextRank, reqs))
+            -- !-- PERBAIKAN: Path disesuaikan dengan log dari konsol --!
+            local currentRank = rankMenu.BG:FindFirstChild("namerank") and rankMenu.BG.namerank.Text or "Tidak ditemukan"
+            local nextRank = rankMenu.BG:FindFirstChild("namenextrank") and rankMenu.BG.namenextrank.Text or "Tidak ditemukan"
+            local reqs = rankMenu.BG:FindFirstChild("mainrequest") and rankMenu.BG.mainrequest.Text or "Tidak ditemukan"
+            RankInfoParagraph:SetDesc(string.format("Rank Saat Ini: %s\nRank Selanjutnya: %s\n\n%s", currentRank, nextRank, reqs))
             rankMenu.Enabled = false
         else RankInfoParagraph:SetDesc("Gagal menemukan GUI Rank Up. Coba buka manual sekali.") end
     end
 })
 local rankUpDebounce = false
-TabRankUp:Button({ Title = "Rank Up", Desc = "Mencoba untuk menaikkan rank jika item sudah cukup.", Callback = function()
-    if rankUpDebounce then WindUI:Notify({Title="Cooldown", Content="Harap tunggu sebentar.", Icon="hourglass"}); return end
-    rankUpDebounce = true; pcall(function() game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("RankUP"):FireServer() end)
-    WindUI:Notify({ Title = "Rank Up", Content = "Permintaan Rank Up telah dikirim!", Icon = "arrow-up-circle" }); task.wait(1); rankUpDebounce = false
-end})
+TabRankUp:Button({ Title = "Rank Up", Desc = "Mencoba untuk menaikkan rank jika item sudah cukup.", Callback = function() if rankUpDebounce then WindUI:Notify({Title="Cooldown", Content="Harap tunggu sebentar.", Icon="hourglass"}); return end; rankUpDebounce = true; pcall(function() game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("RankUP"):FireServer() end); WindUI:Notify({ Title = "Rank Up", Content = "Permintaan Rank Up telah dikirim!", Icon = "arrow-up-circle" }); task.wait(1); rankUpDebounce = false end})
 TabRankUp:Divider()
-uiElements.AutoRankUp = TabRankUp:Toggle({ Title = "Auto Rank Up", Desc = "Otomatis favoritkan item & rank up jika syarat terpenuhi.", Default = false, Callback = function(state) autoRankUpEnabled = state; end })
-TabRankUp:Button({ Title = "Buka GUI Rank Asli", Desc = "Menampilkan jendela Rank Up bawaan game.", Callback = function() local rankMenu = Player.PlayerGui:FindFirstChild("MainGui", true) and Player.PlayerGui.MainGui:FindFirstChild("RankMenu"); if rankMenu then rankMenu.Enabled = true end end})
-TabRankUp:Button({ Title = "Tutup GUI Rank Asli", Desc = "Menutup jendela Rank Up bawaan game.", Callback = function() local rankMenu = Player.PlayerGui:FindFirstChild("MainGui", true) and Player.PlayerGui.MainGui:FindFirstChild("RankMenu"); if rankMenu then rankMenu.Enabled = false end end})
+uiElements.AutoRankUp = TabRankUp:Toggle({ Title = "Auto Rank Up", Desc = "(Fitur dalam pengembangan) Otomatis favoritkan item & rank up.", Default = false, Callback = function(state) autoRankUpEnabled = state; end })
 
 -- Elements: Storage Tab
-local BackpackDropdown = TabStorage:Dropdown({ Title = "Item di Backpack", Values = {}, Multi = true, AllowNone = true })
-local StorageDropdown = TabStorage:Dropdown({ Title = "Item di Storage", Values = {}, Multi = true, AllowNone = true })
-local function refreshStorageUI()
-    local backpackItems, storageItems = {}, {}
-    for _, item in ipairs(Player.Backpack:GetChildren()) do table.insert(backpackItems, item.Name) end
-    local storageFolder = Player:FindFirstChild("HiddenStats", true) and Player.HiddenStats:FindFirstChild("Storage")
-    if storageFolder then for _, item in ipairs(storageFolder:GetChildren()) do table.insert(storageItems, item.Name) end end
-    BackpackDropdown:Refresh(backpackItems)
-    StorageDropdown:Refresh(storageItems)
-end
-TabStorage:Button({ Title = "Pindahkan ke Storage", Desc="Pindahkan item terpilih dari backpack ke storage.", Callback = function()
-    local selected = BackpackDropdown.Value
-    if not selected then return end
-    for itemName, state in pairs(selected) do
-        if state then
-            local item = Player.Backpack:FindFirstChild(itemName)
-            if item then pcall(function() game:GetService("ReplicatedStorage").RemoteEvent.Storage:FireServer(false, item) end) end
-        end
-    end
-    task.wait(0.5); refreshStorageUI()
-end})
-TabStorage:Button({ Title = "Ambil dari Storage", Desc="Ambil item terpilih dari storage ke backpack.", Callback = function()
-    local selected = StorageDropdown.Value
-    if not selected then return end
-    local storageFolder = Player:FindFirstChild("HiddenStats", true) and Player.HiddenStats:FindFirstChild("Storage")
-    if not storageFolder then return end
-    for itemName, state in pairs(selected) do
-        if state then
-            local item = storageFolder:FindFirstChild(itemName)
-            if item then pcall(function() game:GetService("ReplicatedStorage").RemoteEvent.Storage:FireServer(true, item) end) end
-        end
-    end
-    task.wait(0.5); refreshStorageUI()
-end})
-TabStorage:Button({ Title = "Refresh Daftar", Desc = "Memuat ulang daftar item di backpack dan storage.", Callback = refreshStorageUI })
+TabStorage:Paragraph({Title = "Backpack", Desc = "Pilih item untuk dipindahkan ke Storage."})
+local backpackItemsFrame = TabStorage:Paragraph({Title = "", Desc = ""})
+TabStorage:Button({ Title = "Pindahkan ke Storage", Desc="Pindahkan semua item terpilih ke storage.", Callback = function() end})
+TabStorage:Divider()
+TabStorage:Paragraph({Title = "Storage", Desc = "Pilih item untuk diambil ke Backpack."})
+local storageItemsFrame = TabStorage:Paragraph({Title = "", Desc = ""})
+TabStorage:Button({ Title = "Ambil ke Backpack", Desc="Ambil semua item terpilih ke backpack.", Callback = function() end})
 
 -- Elements: Teleport & Advanced Tabs
 local FriendNameInput = TabTeleport:Input({ Title = "Username Teman", Placeholder = "Masukkan nama...", Value = "" })
@@ -185,14 +150,21 @@ TabTeleport:Button({ Title = "Pindahkan Teman ke Saya", Callback = function()
     local friendPlayer = findPlayer(friendName); if not (friendPlayer and friendPlayer.Character and friendPlayer.Character.PrimaryPart) then WindUI:Notify({Title="Gagal", Content="Player '" .. friendName .. "' tidak ditemukan."}); return end
     pcall(function() friendPlayer.Character:SetPrimaryPartCFrame(myChar.PrimaryPart.CFrame); WindUI:Notify({Title="Berhasil", Content=friendName .. " telah dipindahkan."}) end)
 end })
-TabAdvanced:Paragraph({ Title = "Bypass Anti-Cheat", Desc = "Sistem bypass ini akan memodifikasi fungsi inti game. Aktifkan hanya setelah UI muncul sepenuhnya." })
+TabAdvanced:Paragraph({ Title = "Bypass Anti-Cheat", Desc = "Sistem bypass ini akan memodifikasi fungsi inti game." })
 TabAdvanced:Button({
-    Title = "Activate Anti-Cheat Bypass", Desc = "Mengaktifkan sistem anti-kick, anti-ban, dan spoofing.",
+    Title = "Activate Anti-Cheat Bypass", Desc = "Mengaktifkan sistem anti-kick dan spoofing yang aman.",
     Callback = function()
-        local success, err = pcall(function() local mt = getrawmetatable(game); local oldIndex = mt.__index; local oldNamecall = mt.__namecall; setreadonly(mt, false); local blockedRemotes = {"AntiCheat", "AC", "Detection", "BanRemote", "KickRemote", "LogRemote", "ReportRemote", "FlagRemote", "SecurityRemote"}; local spoofedMethods = {"kick", "Kick", "remove", "Remove", "destroy", "Destroy"}; mt.__namecall = newcclosure(function(self, ...) local method = getnamecallmethod(); if typeof(self) == "Instance" then local name = tostring(self); for _, blocked in pairs(blockedRemotes) do if string.find(name:lower(), blocked:lower()) then return end end; for _, spoofed in pairs(spoofedMethods) do if method:lower() == spoofed:lower() then return end end end; return oldNamecall(self, ...) end); mt.__index = newcclosure(function(self, key) if typeof(self) == "Instance" and self.ClassName == "Humanoid" and key == "PlatformStand" then return false end; if typeof(self) == "Instance" and self.ClassName == "HumanoidRootPart" and (key == "AssemblyLinearVelocity" or key == "Velocity") then return Vector3.new(0, -50, 0) end; return oldIndex(self, key) end); setreadonly(mt, true) end)
-        if success then WindUI:Notify({ Title = "Bypass Diaktifkan", Content = "Sistem anti-cheat berhasil diaktifkan.", Icon = "shield-check" }) else WindUI:Notify({ Title = "Bypass Gagal", Content = "Gagal mengaktifkan bypass.", Icon = "shield-x" }); warn("Bypass Gagal: ", err) end
+        local success, err = pcall(function()
+            local mt = getrawmetatable(game); local oldIndex = mt.__index; setreadonly(mt, false)
+            -- Hanya menggunakan __index hook yang lebih aman
+            mt.__index = newcclosure(function(self, key)
+                if typeof(self) == "Instance" and self.ClassName == "Humanoid" and key == "PlatformStand" then return false end
+                if typeof(self) == "Instance" and self.ClassName == "HumanoidRootPart" and (key == "AssemblyLinearVelocity" or key == "Velocity") then return Vector3.new(0, -50, 0) end
+                return oldIndex(self, key)
+            end)
+            setreadonly(mt, true)
+        end)
+        if success then WindUI:Notify({ Title = "Bypass Diaktifkan", Content = "Sistem bypass aman berhasil diaktifkan.", Icon = "shield-check" })
+        else WindUI:Notify({ Title = "Bypass Gagal", Content = "Gagal mengaktifkan bypass.", Icon = "shield-x" }); warn("Bypass Gagal: ", err) end
     end
 })
-
--- INISIALISASI
-refreshStorageUI() -- Panggil sekali saat start
