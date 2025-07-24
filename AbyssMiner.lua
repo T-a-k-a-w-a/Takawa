@@ -21,19 +21,20 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 -- Variabel Status Fitur
-local instantMineEnabled, antiFallDamageEnabled, flyEnabled, autoSellEnabled, autoRankUpEnabled = false, false, false, false, false
+local instantMineEnabled, antiFallDamageEnabled, flyEnabled, autoSellEnabled = false, false, false, false
 local walkspeedValue = 16
 local flySpeed = 50 
 local floatPlatformEnabled = false
 local floatPlatform, platformConnection, platformY = nil, nil, 0
 local originalToolStats, lastKnownTool = {}, nil
+local selectedBackpackItems, selectedStorageItems = {}, {}
 
 -- Buat Jendela Utama
 local screenSize = workspace.CurrentCamera.ViewportSize
 local windowWidth = math.min(screenSize.X * 0.9, 580)
 local windowHeight = math.min(screenSize.Y * 0.8, 520)
 local Window = WindUI:CreateWindow({
-    Title = "Abyss Miner Menu", Author = "Partner Coding", Folder = "AbyssMinerWindUI_v13",
+    Title = "Abyss Miner Menu", Author = "Partner Coding", Folder = "AbyssMinerWindUI_v14",
     Size = UDim2.fromOffset(windowWidth, windowHeight), Theme = "Dark", User = { Enabled = true }, ToggleKey = Enum.KeyCode.RightShift
 })
 local uiElements = {}
@@ -44,7 +45,7 @@ local uiElements = {}
 local flying = false; local bodyVelocity, bodyGyro; local originalMouseBehavior
 local function startFly() local char = Player.Character; if not char or not char:FindFirstChild("HumanoidRootPart") or flying then return end; local rootPart = char.HumanoidRootPart; bodyGyro = Instance.new("BodyGyro", rootPart); bodyGyro.P = 9e4; bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9); bodyGyro.CFrame = rootPart.CFrame; bodyVelocity = Instance.new("BodyVelocity", rootPart); bodyVelocity.Velocity = Vector3.new(0, 0, 0); bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9); flying = true; Player.DevEnableMouseLock = true; originalMouseBehavior = UserInputService.MouseBehavior; UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter end
 local function stopFly() if bodyGyro then bodyGyro:Destroy() end; if bodyVelocity then bodyVelocity:Destroy() end; flying = false; Player.DevEnableMouseLock = false; if originalMouseBehavior then UserInputService.MouseBehavior = originalMouseBehavior end end
-local function findPlayer(name) local targetName = name:lower(); for _, player in ipairs(game:GetService("Players"):GetPlayers()) do if player.Name:lower():match(targetName) or player.DisplayName:lower():match(targetName) then return player end end; return nil end
+local function findPlayer(name) local targetName = name:lower(); for _, player in ipairs(game:GetService("Players"):GetPlayers()) do if string.find(player.Name:lower(), targetName, 1, true) or string.find(player.DisplayName:lower(), targetName, 1, true) then return player end end; return nil end
 local function restoreToolStats() if lastKnownTool and originalToolStats[lastKnownTool] then local tool = lastKnownTool; local stats = originalToolStats[lastKnownTool]; pcall(function() if stats.Speed and tool:FindFirstChild("Speed") then tool.Speed.Value = stats.Speed end end); originalToolStats[lastKnownTool] = nil end end
 
 RunService.Heartbeat:Connect(function()
@@ -70,8 +71,7 @@ RunService.Heartbeat:Connect(function()
 end)
 
 Player.CharacterAdded:Connect(function(char) 
-    local humanoid = char:WaitForChild("Humanoid")
-    humanoid.StateChanged:Connect(function(old, new) if new == Enum.HumanoidStateType.Landed and antiFallDamageEnabled then pcall(function() humanoid:ChangeState(Enum.HumanoidStateType.Swimming) end) end end)
+    local humanoid = char:WaitForChild("Humanoid"); humanoid.StateChanged:Connect(function(old, new) if new == Enum.HumanoidStateType.Landed and antiFallDamageEnabled then pcall(function() humanoid:ChangeState(Enum.HumanoidStateType.Swimming) end) end end)
     task.wait(2)
     pcall(function()
         if instantMineEnabled and uiElements.InstantMine then uiElements.InstantMine:Set(true) end
@@ -95,7 +95,7 @@ local TabAdvanced = Window:Tab({ Title = "Advanced", Icon = "shield" })
 Window:SelectTab(1)
 
 uiElements.InstantMine = TabMain:Toggle({ Title = "Instant Mine (Speed Only)", Desc = "Aktifkan, lalu tahan klik untuk mining super cepat.", Default = false, Callback = function(state) instantMineEnabled = state; if not state then restoreToolStats() end end })
-uiElements.AutoSell = TabMain:Toggle({ Title = "Auto Sell (15 detik)", Desc = "Menjual item non-favorit setiap 15 detik.", Default = false, Callback = function(state) autoSellEnabled = state; if autoSellEnabled then task.spawn(function() while autoSellEnabled do pcall(function() local npc = workspace:FindFirstChild("Map", true) and workspace.Map:FindFirstChild("Layer 1", true) and workspace.Map["Layer 1"]:FindFirstChild("Npcs", true) and workspace.Map["Layer 1"].Npcs:FindFirstChild("Rei ' The professer", true) and workspace.Map["Layer 1"].Npcs["Rei ' The professer"]:FindFirstChild("Rei", true); local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool"); if npc and tool then game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SellAllInventory"):FireServer(npc, tool) end end); task.wait(15) end end) end end })
+uiElements.AutoSell = TabMain:Toggle({ Title = "Auto Sell (15 detik)", Desc = "Menjual semua item di inventory setiap 15 detik.", Default = false, Callback = function(state) autoSellEnabled = state; if autoSellEnabled then task.spawn(function() while autoSellEnabled do pcall(function() local npc = workspace:FindFirstChild("Map", true) and workspace.Map:FindFirstChild("Layer 1", true) and workspace.Map["Layer 1"]:FindFirstChild("Npcs", true) and workspace.Map["Layer 1"].Npcs:FindFirstChild("Rei ' The professer", true) and workspace.Map["Layer 1"].Npcs["Rei ' The professer"]:FindFirstChild("Rei", true); local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool"); if npc and tool then game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("SellAllInventory"):FireServer(npc, tool) end end); task.wait(15) end end) end end })
 uiElements.Walkspeed = TabPlayer:Slider({ Title = "Walkspeed", Value = { Min = 16, Max = 100, Default = 16 }, Step = 1, Suffix = " speed", Callback = function(value) walkspeedValue = value end })
 uiElements.FlySpeed = TabPlayer:Slider({ Title = "Kecepatan Terbang", Desc = "Kecepatan tinggi (>50) dapat menyebabkan kick.", Value = { Min = 10, Max = 200, Default = 50 }, Step = 5, Suffix = " speed", Callback = function(value) flySpeed = value end })
 uiElements.AntiFall = TabPlayer:Toggle({ Title = "Anti Fall Damage", Desc = "Mencegah damage saat jatuh.", Default = false, Callback = function(state) antiFallDamageEnabled = state end })
@@ -130,16 +130,44 @@ TabRankUp:Button({
 local rankUpDebounce = false
 TabRankUp:Button({ Title = "Rank Up", Desc = "Mencoba untuk menaikkan rank jika item sudah cukup.", Callback = function() if rankUpDebounce then WindUI:Notify({Title="Cooldown", Content="Harap tunggu sebentar.", Icon="hourglass"}); return end; rankUpDebounce = true; pcall(function() game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("RankUP"):FireServer() end); WindUI:Notify({ Title = "Rank Up", Content = "Permintaan Rank Up telah dikirim!", Icon = "arrow-up-circle" }); task.wait(1); rankUpDebounce = false end})
 TabRankUp:Divider()
-uiElements.AutoRankUp = TabRankUp:Toggle({ Title = "Auto Rank Up", Desc = "(Fitur dalam pengembangan) Otomatis favoritkan item & rank up.", Default = false, Callback = function(state) autoRankUpEnabled = state; end })
+uiElements.AutoRankUp = TabRankUp:Toggle({ Title = "Auto Rank Up", Desc = "(Fitur dalam pengembangan)", Default = false, Callback = function(state) autoRankUpEnabled = state; end })
 
--- Elements: Storage Tab
-TabStorage:Paragraph({Title = "Backpack", Desc = "Pilih item untuk dipindahkan ke Storage."})
-local backpackItemsFrame = TabStorage:Paragraph({Title = "", Desc = ""})
-TabStorage:Button({ Title = "Pindahkan ke Storage", Desc="Pindahkan semua item terpilih ke storage.", Callback = function() end})
-TabStorage:Divider()
-TabStorage:Paragraph({Title = "Storage", Desc = "Pilih item untuk diambil ke Backpack."})
-local storageItemsFrame = TabStorage:Paragraph({Title = "", Desc = ""})
-TabStorage:Button({ Title = "Ambil ke Backpack", Desc="Ambil semua item terpilih ke backpack.", Callback = function() end})
+-- !-- PERBAIKAN: Mengganti Dropdown Storage dengan Daftar Toggle Kustom --!
+local backpackFrame = TabStorage:Paragraph({Title = "Backpack", Desc = "Pilih item untuk dipindahkan."})
+local storageFrame = TabStorage:Paragraph({Title = "Storage", Desc = "Pilih item untuk diambil."})
+local function refreshStorageUI()
+    -- Hapus toggle lama
+    for _, child in ipairs(backpackFrame.Container:GetChildren()) do if child.Name == "ItemToggle" then child:Destroy() end end
+    for _, child in ipairs(storageFrame.Container:GetChildren()) do if child.Name == "ItemToggle" then child:Destroy() end end
+    selectedBackpackItems, selectedStorageItems = {}, {}
+
+    -- Buat toggle baru untuk Backpack
+    for _, item in ipairs(Player.Backpack:GetChildren()) do
+        local itemToggle = TabStorage:Toggle({ Title = item.Name, Parent = backpackFrame.Container, Callback = function(state) selectedBackpackItems[item.Name] = state end })
+        itemToggle.ToggleFrame.Name = "ItemToggle"
+    end
+    -- Buat toggle baru untuk Storage
+    local storageFolder = Player:FindFirstChild("HiddenStats", true) and Player.HiddenStats:FindFirstChild("Storage")
+    if storageFolder then for _, item in ipairs(storageFolder:GetChildren()) do
+        local itemToggle = TabStorage:Toggle({ Title = item.Name, Parent = storageFrame.Container, Callback = function(state) selectedStorageItems[item.Name] = state end })
+        itemToggle.ToggleFrame.Name = "ItemToggle"
+    end end
+end
+TabStorage:Button({ Title = "Pindahkan ke Storage", Desc="Pindahkan semua item terpilih ke storage.", Callback = function()
+    for itemName, state in pairs(selectedBackpackItems) do
+        if state then local item = Player.Backpack:FindFirstChild(itemName); if item then pcall(function() game:GetService("ReplicatedStorage").RemoteEvent.Storage:FireServer(false, item) end) end end
+    end
+    task.wait(0.5); refreshStorageUI()
+end})
+TabStorage:Button({ Title = "Ambil ke Backpack", Desc="Ambil semua item terpilih ke backpack.", Callback = function()
+    local storageFolder = Player:FindFirstChild("HiddenStats", true) and Player.HiddenStats:FindFirstChild("Storage")
+    if not storageFolder then return end
+    for itemName, state in pairs(selectedStorageItems) do
+        if state then local item = storageFolder:FindFirstChild(itemName); if item then pcall(function() game:GetService("ReplicatedStorage").RemoteEvent.Storage:FireServer(true, item) end) end end
+    end
+    task.wait(0.5); refreshStorageUI()
+end})
+TabStorage:Button({ Title = "Refresh Daftar", Desc = "Memuat ulang daftar item.", Callback = refreshStorageUI })
 
 -- Elements: Teleport & Advanced Tabs
 local FriendNameInput = TabTeleport:Input({ Title = "Username Teman", Placeholder = "Masukkan nama...", Value = "" })
@@ -156,7 +184,7 @@ TabAdvanced:Button({
     Callback = function()
         local success, err = pcall(function()
             local mt = getrawmetatable(game); local oldIndex = mt.__index; setreadonly(mt, false)
-            -- Hanya menggunakan __index hook yang lebih aman
+            -- !-- PERBAIKAN: Menghapus __namecall hook yang menyebabkan freeze --!
             mt.__index = newcclosure(function(self, key)
                 if typeof(self) == "Instance" and self.ClassName == "Humanoid" and key == "PlatformStand" then return false end
                 if typeof(self) == "Instance" and self.ClassName == "HumanoidRootPart" and (key == "AssemblyLinearVelocity" or key == "Velocity") then return Vector3.new(0, -50, 0) end
@@ -168,3 +196,6 @@ TabAdvanced:Button({
         else WindUI:Notify({ Title = "Bypass Gagal", Content = "Gagal mengaktifkan bypass.", Icon = "shield-x" }); warn("Bypass Gagal: ", err) end
     end
 })
+
+-- INISIALISASI
+refreshStorageUI()
