@@ -1,5 +1,5 @@
 --================================================================--
---      SKRIP VERSI FINAL (WINDUI + ANTI-FREEZE) - OLEH PARTNER CODING     --
+--      SKRIP VERSI FINAL (WINDUI + RANK UP TAB) - OLEH PARTNER CODING     --
 --================================================================--
 
 -- Pemuatan Library yang Aman (Safe Loading)
@@ -37,7 +37,7 @@ local windowWidth = math.min(screenSize.X * 0.9, 580)
 local windowHeight = math.min(screenSize.Y * 0.8, 520)
 
 local Window = WindUI:CreateWindow({
-    Title = "Abyss Miner Menu", Author = "Partner Coding", Folder = "AbyssMinerWindUI_v10",
+    Title = "Abyss Miner Menu", Author = "Partner Coding", Folder = "AbyssMinerWindUI_v11",
     Size = UDim2.fromOffset(windowWidth, windowHeight), Theme = "Dark", User = { Enabled = true }, ToggleKey = Enum.KeyCode.RightShift
 })
 
@@ -63,6 +63,7 @@ RunService.Heartbeat:Connect(function()
         bodyVelocity.Velocity = flyVelocity; bodyGyro.CFrame = camera.CFrame
     end
     if instantMineEnabled then local tool = char:FindFirstChildOfClass("Tool"); if tool and tool ~= lastKnownTool then restoreToolStats(); lastKnownTool = tool end; if tool then if not originalToolStats[tool] then originalToolStats[tool] = { Speed = tool:FindFirstChild("Speed") and tool.Speed.Value } end; pcall(function() local speed = tool:FindFirstChild("Speed"); if speed then speed.Value = 0 end end) else restoreToolStats(); lastKnownTool = nil end end
+    local rootPart = char:FindFirstChild("HumanoidRootPart"); if not rootPart then return end;
     if antiFallDamageEnabled then
         local isFalling = false; local startFallY = 0; local fallDamageThreshold = 40
         if humanoid.FloorMaterial == Enum.Material.Air and rootPart.Velocity.Y < -30 then
@@ -92,6 +93,7 @@ end)
 --================================================================--
 local TabMain = Window:Tab({ Title = "Main", Icon = "pickaxe" })
 local TabPlayer = Window:Tab({ Title = "Player", Icon = "user" })
+local TabRankUp = Window:Tab({ Title = "Rank Up", Icon = "award" }) -- Tab Baru
 local TabTeleport = Window:Tab({ Title = "Teleportasi", Icon = "map-pin" })
 local TabAdvanced = Window:Tab({ Title = "Advanced", Icon = "shield" })
 Window:SelectTab(1)
@@ -109,6 +111,64 @@ end })
 uiElements.Fly = TabPlayer:Toggle({ Title = "Toggle Fly", Desc = "Otomatis shift-lock. Gunakan joystick untuk arah.", Default = false, Callback = function(state) flyEnabled = state; if state then startFly() else stopFly() end end })
 uiElements.FlyUp = TabPlayer:Button({ Title = "Naik (Tahan)", Desc = "Tahan untuk terbang ke atas." })
 uiElements.FlyDown = TabPlayer:Button({ Title = "Turun (Tahan)", Desc = "Tahan untuk terbang ke bawah." })
+
+-- Elements: Rank Up Tab
+local RankInfoParagraph = TabRankUp:Paragraph({ Title = "Informasi Rank", Desc = "Klik 'Tampilkan Info Rank' untuk memuat data terbaru." })
+TabRankUp:Button({
+    Title = "Tampilkan/Perbarui Info Rank",
+    Desc = "Membaca data dari GUI asli dan menampilkannya di sini.",
+    Callback = function()
+        local karl = workspace:FindFirstChild("Map", true) and workspace.Map:FindFirstChild("Layer 1", true) and workspace.Map["Layer 1"]:FindFirstChild("Npcs", true) and workspace.Map["Layer 1"].Npcs:FindFirstChild("Karl")
+        if not karl then WindUI:Notify({Title="Error", Content="NPC Karl tidak ditemukan."}); return end
+        
+        local rankGuiRemote = game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("RankUpGui")
+        rankGuiRemote:FireServer(karl, karl.HumanoidRootPart:WaitForChild("Dialogue"))
+        
+        task.wait(0.5) -- Beri waktu agar GUI asli muncul
+        
+        local rankMenu = Player.PlayerGui:FindFirstChild("MainGui", true) and Player.PlayerGui.MainGui:FindFirstChild("RankMenu")
+        if rankMenu then
+            -- Path ini adalah tebakan berdasarkan struktur UI pada umumnya. Mungkin perlu disesuaikan.
+            local currentRank = rankMenu.BG:FindFirstChild("CurrentRank", true) and rankMenu.BG.CurrentRank.TextLabel.Text or "Tidak ditemukan"
+            local nextRank = rankMenu.BG:FindFirstChild("NextRank", true) and rankMenu.BG.NextRank.TextLabel.Text or "Tidak ditemukan"
+            local reqs = rankMenu.BG:FindFirstChild("Req", true) and rankMenu.BG.Req.TextLabel.Text or "Tidak ditemukan"
+
+            local infoText = string.format("Rank Saat Ini: %s\nRank Selanjutnya: %s\n\nSyarat Mineral:\n%s", currentRank, nextRank, reqs)
+            RankInfoParagraph:SetDesc(infoText)
+            
+            rankMenu.Enabled = false -- Tutup GUI asli setelah selesai
+        else
+            RankInfoParagraph:SetDesc("Gagal menemukan GUI Rank Up. Coba buka manual sekali.")
+        end
+    end
+})
+
+TabRankUp:Divider()
+
+local rankUpDebounce = false
+TabRankUp:Button({
+    Title = "Rank Up", Desc = "Mencoba untuk menaikkan rank jika item sudah cukup.",
+    Callback = function()
+        if rankUpDebounce then WindUI:Notify({Title="Cooldown", Content="Harap tunggu sebentar.", Icon="hourglass"}); return end
+        rankUpDebounce = true
+        pcall(function() game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("RankUP"):FireServer() end)
+        WindUI:Notify({ Title = "Rank Up", Content = "Permintaan Rank Up telah dikirim!", Icon = "arrow-up-circle" })
+        task.wait(1); rankUpDebounce = false
+    end
+})
+
+TabRankUp:Divider()
+
+TabRankUp:Button({ Title = "Buka GUI Rank Asli", Desc = "Menampilkan jendela Rank Up bawaan game.", Callback = function()
+    local rankMenu = Player.PlayerGui:FindFirstChild("MainGui", true) and Player.PlayerGui.MainGui:FindFirstChild("RankMenu")
+    if rankMenu then rankMenu.Enabled = true end
+end})
+TabRankUp:Button({ Title = "Tutup GUI Rank Asli", Desc = "Menutup jendela Rank Up bawaan game.", Callback = function()
+    local rankMenu = Player.PlayerGui:FindFirstChild("MainGui", true) and Player.PlayerGui.MainGui:FindFirstChild("RankMenu")
+    if rankMenu then rankMenu.Enabled = false end
+end})
+
+-- Elements: Teleport Tab
 local FriendNameInput = TabTeleport:Input({ Title = "Username Teman", Placeholder = "Masukkan nama...", Value = "" })
 TabTeleport:Button({ Title = "Pindahkan Teman ke Saya", Callback = function()
     local myChar = Player.Character; local friendName = FriendNameInput.Value
@@ -117,32 +177,18 @@ TabTeleport:Button({ Title = "Pindahkan Teman ke Saya", Callback = function()
     local friendPlayer = findPlayer(friendName); if not (friendPlayer and friendPlayer.Character and friendPlayer.Character.PrimaryPart) then WindUI:Notify({Title="Gagal", Content="Player '" .. friendName .. "' tidak ditemukan."}); return end
     pcall(function() friendPlayer.Character:SetPrimaryPartCFrame(myChar.PrimaryPart.CFrame); WindUI:Notify({Title="Berhasil", Content=friendName .. " telah dipindahkan."}) end)
 end })
+
+-- Elements: Advanced Tab
 TabAdvanced:Paragraph({ Title = "Bypass Anti-Cheat", Desc = "Sistem bypass ini akan memodifikasi fungsi inti game. Aktifkan hanya setelah UI muncul sepenuhnya." })
 TabAdvanced:Button({
     Title = "Activate Anti-Cheat Bypass", Desc = "Mengaktifkan sistem anti-kick, anti-ban, dan spoofing.",
     Callback = function()
         local success, err = pcall(function()
-            local mt = getrawmetatable(game)
-            local oldIndex = mt.__index
-            local oldNamecall = mt.__namecall
-            setreadonly(mt, false)
+            local mt = getrawmetatable(game); local oldIndex = mt.__index; local oldNamecall = mt.__namecall; setreadonly(mt, false)
             local blockedRemotes = {"AntiCheat", "AC", "Detection", "BanRemote", "KickRemote", "LogRemote", "ReportRemote", "FlagRemote", "SecurityRemote"}
             local spoofedMethods = {"kick", "Kick", "remove", "Remove", "destroy", "Destroy"}
-            mt.__namecall = newcclosure(function(self, ...)
-                local method = getnamecallmethod()
-                if typeof(self) == "Instance" then
-                    local name = tostring(self)
-                    -- !-- PERBAIKAN: Mengganti wait(9e9) menjadi return untuk mencegah freeze --!
-                    for _, blocked in pairs(blockedRemotes) do if string.find(name:lower(), blocked:lower()) then return end end
-                    for _, spoofed in pairs(spoofedMethods) do if method:lower() == spoofed:lower() then return end end
-                end
-                return oldNamecall(self, ...)
-            end)
-            mt.__index = newcclosure(function(self, key)
-                if typeof(self) == "Instance" and self.ClassName == "Humanoid" and key == "PlatformStand" then return false end
-                if typeof(self) == "Instance" and self.ClassName == "HumanoidRootPart" and (key == "AssemblyLinearVelocity" or key == "Velocity") then return Vector3.new(0, -50, 0) end
-                return oldIndex(self, key)
-            end)
+            mt.__namecall = newcclosure(function(self, ...) local method = getnamecallmethod(); if typeof(self) == "Instance" then local name = tostring(self); for _, blocked in pairs(blockedRemotes) do if string.find(name:lower(), blocked:lower()) then return end end; for _, spoofed in pairs(spoofedMethods) do if method:lower() == spoofed:lower() then return end end end; return oldNamecall(self, ...) end)
+            mt.__index = newcclosure(function(self, key) if typeof(self) == "Instance" and self.ClassName == "Humanoid" and key == "PlatformStand" then return false end; if typeof(self) == "Instance" and self.ClassName == "HumanoidRootPart" and (key == "AssemblyLinearVelocity" or key == "Velocity") then return Vector3.new(0, -50, 0) end; return oldIndex(self, key) end)
             setreadonly(mt, true)
         end)
         if success then WindUI:Notify({ Title = "Bypass Diaktifkan", Content = "Sistem anti-cheat berhasil diaktifkan.", Icon = "shield-check" })
