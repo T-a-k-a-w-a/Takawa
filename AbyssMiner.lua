@@ -1,5 +1,5 @@
 --================================================================--
---      SKRIP VERSI FINAL (WINDUI + SEMUA PERBAIKAN) - OLEH PARTNER CODING     --
+--      SKRIP VERSI FINAL (WINDUI + PERBAIKAN TOTAL) - OLEH PARTNER CODING     --
 --================================================================--
 
 -- Pemuatan Library yang Aman (Safe Loading)
@@ -27,14 +27,13 @@ local flySpeed = 50
 local floatPlatformEnabled = false
 local floatPlatform, platformConnection, platformY = nil, nil, 0
 local originalToolStats, lastKnownTool = {}, nil
-local selectedBackpackItems, selectedStorageItems = {}, {}
 
 -- Buat Jendela Utama
 local screenSize = workspace.CurrentCamera.ViewportSize
 local windowWidth = math.min(screenSize.X * 0.9, 580)
 local windowHeight = math.min(screenSize.Y * 0.8, 520)
 local Window = WindUI:CreateWindow({
-    Title = "Abyss Miner Menu", Author = "Partner Coding", Folder = "AbyssMinerWindUI_v14",
+    Title = "Abyss Miner Menu", Author = "Partner Coding", Folder = "AbyssMinerWindUI_v15",
     Size = UDim2.fromOffset(windowWidth, windowHeight), Theme = "Dark", User = { Enabled = true }, ToggleKey = Enum.KeyCode.RightShift
 })
 local uiElements = {}
@@ -45,7 +44,6 @@ local uiElements = {}
 local flying = false; local bodyVelocity, bodyGyro; local originalMouseBehavior
 local function startFly() local char = Player.Character; if not char or not char:FindFirstChild("HumanoidRootPart") or flying then return end; local rootPart = char.HumanoidRootPart; bodyGyro = Instance.new("BodyGyro", rootPart); bodyGyro.P = 9e4; bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9); bodyGyro.CFrame = rootPart.CFrame; bodyVelocity = Instance.new("BodyVelocity", rootPart); bodyVelocity.Velocity = Vector3.new(0, 0, 0); bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9); flying = true; Player.DevEnableMouseLock = true; originalMouseBehavior = UserInputService.MouseBehavior; UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter end
 local function stopFly() if bodyGyro then bodyGyro:Destroy() end; if bodyVelocity then bodyVelocity:Destroy() end; flying = false; Player.DevEnableMouseLock = false; if originalMouseBehavior then UserInputService.MouseBehavior = originalMouseBehavior end end
-local function findPlayer(name) local targetName = name:lower(); for _, player in ipairs(game:GetService("Players"):GetPlayers()) do if string.find(player.Name:lower(), targetName, 1, true) or string.find(player.DisplayName:lower(), targetName, 1, true) then return player end end; return nil end
 local function restoreToolStats() if lastKnownTool and originalToolStats[lastKnownTool] then local tool = lastKnownTool; local stats = originalToolStats[lastKnownTool]; pcall(function() if stats.Speed and tool:FindFirstChild("Speed") then tool.Speed.Value = stats.Speed end end); originalToolStats[lastKnownTool] = nil end end
 
 RunService.Heartbeat:Connect(function()
@@ -117,11 +115,12 @@ TabRankUp:Button({
         game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("RankUpGui"):FireServer(karl, karl.HumanoidRootPart:WaitForChild("Dialogue"))
         task.wait(0.5)
         local rankMenu = Player.PlayerGui:FindFirstChild("MainGui", true) and Player.PlayerGui.MainGui:FindFirstChild("RankMenu")
-        if rankMenu then
+        if rankMenu and rankMenu:FindFirstChild("BG") then
+            local bg = rankMenu.BG
             -- !-- PERBAIKAN: Path disesuaikan dengan log dari konsol --!
-            local currentRank = rankMenu.BG:FindFirstChild("namerank") and rankMenu.BG.namerank.Text or "Tidak ditemukan"
-            local nextRank = rankMenu.BG:FindFirstChild("namenextrank") and rankMenu.BG.namenextrank.Text or "Tidak ditemukan"
-            local reqs = rankMenu.BG:FindFirstChild("mainrequest") and rankMenu.BG.mainrequest.Text or "Tidak ditemukan"
+            local currentRank = bg:FindFirstChild("namerank") and bg.namerank.Text or "[Tidak Ditemukan]"
+            local nextRank = bg:FindFirstChild("namenextrank") and bg.namenextrank.Text or "[Tidak Ditemukan]"
+            local reqs = bg:FindFirstChild("mainrequest") and bg.mainrequest.Text or "[Tidak Ditemukan]"
             RankInfoParagraph:SetDesc(string.format("Rank Saat Ini: %s\nRank Selanjutnya: %s\n\n%s", currentRank, nextRank, reqs))
             rankMenu.Enabled = false
         else RankInfoParagraph:SetDesc("Gagal menemukan GUI Rank Up. Coba buka manual sekali.") end
@@ -129,62 +128,72 @@ TabRankUp:Button({
 })
 local rankUpDebounce = false
 TabRankUp:Button({ Title = "Rank Up", Desc = "Mencoba untuk menaikkan rank jika item sudah cukup.", Callback = function() if rankUpDebounce then WindUI:Notify({Title="Cooldown", Content="Harap tunggu sebentar.", Icon="hourglass"}); return end; rankUpDebounce = true; pcall(function() game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvent"):WaitForChild("RankUP"):FireServer() end); WindUI:Notify({ Title = "Rank Up", Content = "Permintaan Rank Up telah dikirim!", Icon = "arrow-up-circle" }); task.wait(1); rankUpDebounce = false end})
-TabRankUp:Divider()
-uiElements.AutoRankUp = TabRankUp:Toggle({ Title = "Auto Rank Up", Desc = "(Fitur dalam pengembangan)", Default = false, Callback = function(state) autoRankUpEnabled = state; end })
 
--- !-- PERBAIKAN: Mengganti Dropdown Storage dengan Daftar Toggle Kustom --!
-local backpackFrame = TabStorage:Paragraph({Title = "Backpack", Desc = "Pilih item untuk dipindahkan."})
-local storageFrame = TabStorage:Paragraph({Title = "Storage", Desc = "Pilih item untuk diambil."})
-local function refreshStorageUI()
-    -- Hapus toggle lama
-    for _, child in ipairs(backpackFrame.Container:GetChildren()) do if child.Name == "ItemToggle" then child:Destroy() end end
-    for _, child in ipairs(storageFrame.Container:GetChildren()) do if child.Name == "ItemToggle" then child:Destroy() end end
-    selectedBackpackItems, selectedStorageItems = {}, {}
-
-    -- Buat toggle baru untuk Backpack
-    for _, item in ipairs(Player.Backpack:GetChildren()) do
-        local itemToggle = TabStorage:Toggle({ Title = item.Name, Parent = backpackFrame.Container, Callback = function(state) selectedBackpackItems[item.Name] = state end })
-        itemToggle.ToggleFrame.Name = "ItemToggle"
+-- !-- PERBAIKAN TOTAL: Fitur Storage --!
+local StorageDropdown
+TabStorage:Button({ Title = "Pindahkan SEMUA Item ke Storage", Desc="Memindahkan semua item dari backpack ke storage.", Callback = function()
+    local backpackItems = Player.Backpack:GetChildren()
+    for _, item in ipairs(backpackItems) do
+        if item:IsA("Tool") then
+            pcall(function() game:GetService("ReplicatedStorage").RemoteEvent.Storage:FireServer(false, item) end)
+            task.wait()
+        end
     end
-    -- Buat toggle baru untuk Storage
-    local storageFolder = Player:FindFirstChild("HiddenStats", true) and Player.HiddenStats:FindFirstChild("Storage")
-    if storageFolder then for _, item in ipairs(storageFolder:GetChildren()) do
-        local itemToggle = TabStorage:Toggle({ Title = item.Name, Parent = storageFrame.Container, Callback = function(state) selectedStorageItems[item.Name] = state end })
-        itemToggle.ToggleFrame.Name = "ItemToggle"
-    end end
-end
-TabStorage:Button({ Title = "Pindahkan ke Storage", Desc="Pindahkan semua item terpilih ke storage.", Callback = function()
-    for itemName, state in pairs(selectedBackpackItems) do
-        if state then local item = Player.Backpack:FindFirstChild(itemName); if item then pcall(function() game:GetService("ReplicatedStorage").RemoteEvent.Storage:FireServer(false, item) end) end end
-    end
-    task.wait(0.5); refreshStorageUI()
+    WindUI:Notify({Title="Storage", Content="Semua item telah dipindahkan."})
 end})
-TabStorage:Button({ Title = "Ambil ke Backpack", Desc="Ambil semua item terpilih ke backpack.", Callback = function()
+TabStorage:Divider()
+local function refreshStorageDropdown()
+    local storageItems = {}
+    local storageFolder = Player:FindFirstChild("HiddenStats", true) and Player.HiddenStats:FindFirstChild("Storage")
+    if storageFolder then for _, item in ipairs(storageFolder:GetChildren()) do table.insert(storageItems, item.Name) end end
+    if StorageDropdown then StorageDropdown:Refresh(storageItems) else
+        StorageDropdown = TabStorage:Dropdown({ Title = "Ambil Item dari Storage", Values = storageItems, Multi = true, AllowNone = true })
+    end
+end
+refreshStorageDropdown()
+TabStorage:Button({ Title = "Ambil Item Terpilih", Desc="Ambil item yang dipilih dari storage ke backpack.", Callback = function()
+    local selected = StorageDropdown.Value
+    if not selected then return end
     local storageFolder = Player:FindFirstChild("HiddenStats", true) and Player.HiddenStats:FindFirstChild("Storage")
     if not storageFolder then return end
-    for itemName, state in pairs(selectedStorageItems) do
+    for itemName, state in pairs(selected) do
         if state then local item = storageFolder:FindFirstChild(itemName); if item then pcall(function() game:GetService("ReplicatedStorage").RemoteEvent.Storage:FireServer(true, item) end) end end
     end
-    task.wait(0.5); refreshStorageUI()
+    task.wait(0.5); refreshStorageDropdown()
 end})
-TabStorage:Button({ Title = "Refresh Daftar", Desc = "Memuat ulang daftar item.", Callback = refreshStorageUI })
+TabStorage:Button({ Title = "Refresh Daftar Storage", Desc = "Memuat ulang daftar item di storage.", Callback = refreshStorageDropdown })
 
--- Elements: Teleport & Advanced Tabs
-local FriendNameInput = TabTeleport:Input({ Title = "Username Teman", Placeholder = "Masukkan nama...", Value = "" })
+
+-- !-- PERBAIKAN TOTAL: Fitur Teleport Teman --!
+local PlayerDropdown
+local function refreshPlayerList()
+    local playerNames = {}
+    for _, p in ipairs(game:GetService("Players"):GetPlayers()) do
+        if p ~= Player then table.insert(playerNames, p.Name) end
+    end
+    if PlayerDropdown then PlayerDropdown:Refresh(playerNames) else
+        PlayerDropdown = TabTeleport:Dropdown({ Title = "Pilih Pemain (Username)", Values = playerNames, Value = nil })
+    end
+end
+refreshPlayerList()
+TabTeleport:Button({ Title = "Refresh Daftar Pemain", Callback = refreshPlayerList })
 TabTeleport:Button({ Title = "Pindahkan Teman ke Saya", Callback = function()
-    local myChar = Player.Character; local friendName = FriendNameInput.Value
+    local myChar = Player.Character; local friendName = PlayerDropdown.Value
     if not (myChar and myChar.PrimaryPart) then WindUI:Notify({Title="Gagal", Content="Karaktermu tidak ditemukan."}); return end
-    if not (friendName and friendName ~= "") then WindUI:Notify({Title="Gagal", Content="Masukkan nama teman."}); return end
-    local friendPlayer = findPlayer(friendName); if not (friendPlayer and friendPlayer.Character and friendPlayer.Character.PrimaryPart) then WindUI:Notify({Title="Gagal", Content="Player '" .. friendName .. "' tidak ditemukan."}); return end
+    if not friendName then WindUI:Notify({Title="Gagal", Content="Pilih pemain dari daftar."}); return end
+    local friendPlayer = game:GetService("Players"):FindFirstChild(friendName)
+    if not (friendPlayer and friendPlayer.Character and friendPlayer.Character.PrimaryPart) then WindUI:Notify({Title="Gagal", Content="Player '" .. friendName .. "' tidak ditemukan."}); return end
     pcall(function() friendPlayer.Character:SetPrimaryPartCFrame(myChar.PrimaryPart.CFrame); WindUI:Notify({Title="Berhasil", Content=friendName .. " telah dipindahkan."}) end)
 end })
+
+
+-- !-- PERBAIKAN: Anti-Cheat Bypass yang Lebih Aman --!
 TabAdvanced:Paragraph({ Title = "Bypass Anti-Cheat", Desc = "Sistem bypass ini akan memodifikasi fungsi inti game." })
 TabAdvanced:Button({
     Title = "Activate Anti-Cheat Bypass", Desc = "Mengaktifkan sistem anti-kick dan spoofing yang aman.",
     Callback = function()
         local success, err = pcall(function()
             local mt = getrawmetatable(game); local oldIndex = mt.__index; setreadonly(mt, false)
-            -- !-- PERBAIKAN: Menghapus __namecall hook yang menyebabkan freeze --!
             mt.__index = newcclosure(function(self, key)
                 if typeof(self) == "Instance" and self.ClassName == "Humanoid" and key == "PlatformStand" then return false end
                 if typeof(self) == "Instance" and self.ClassName == "HumanoidRootPart" and (key == "AssemblyLinearVelocity" or key == "Velocity") then return Vector3.new(0, -50, 0) end
@@ -196,6 +205,3 @@ TabAdvanced:Button({
         else WindUI:Notify({ Title = "Bypass Gagal", Content = "Gagal mengaktifkan bypass.", Icon = "shield-x" }); warn("Bypass Gagal: ", err) end
     end
 })
-
--- INISIALISASI
-refreshStorageUI()
