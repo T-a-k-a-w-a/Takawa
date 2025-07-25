@@ -194,4 +194,42 @@ end})
 TabStorage:Button({ Title = "Refresh Daftar", Desc = "Memuat ulang daftar item.", Callback = refreshStorageUI })
 
 local PlayerDropdown; local function refreshPlayerList() local playerNames = {}; for _, p in ipairs(game:GetService("Players"):GetPlayers()) do if p ~= Player then table.insert(playerNames, p.Name) end end; if PlayerDropdown then PlayerDropdown:Refresh(playerNames) else PlayerDropdown = TabTeleport:Dropdown({ Title = "Pilih Pemain (Username)", Values = playerNames, Value = nil }) end end
-refreshPla
+refreshPlayerList(); game:GetService("Players").PlayerAdded:Connect(refreshPlayerList); game:GetService("Players").PlayerRemoving:Connect(refreshPlayerList)
+TabTeleport:Button({ Title = "Refresh Daftar Pemain", Callback = refreshPlayerList })
+TabTeleport:Button({ Title = "Pindahkan Teman ke Saya", Callback = function()
+    local myChar = Player.Character; local friendName = PlayerDropdown.Value; if not (myChar and myChar.PrimaryPart) then WindUI:Notify({Title="Gagal", Content="Karaktermu tidak ditemukan."}); return end
+    if not friendName then WindUI:Notify({Title="Gagal", Content="Pilih pemain dari daftar."}); return end
+    local friendPlayer = game:GetService("Players"):FindFirstChild(friendName); if not (friendPlayer and friendPlayer.Character and friendPlayer.Character.PrimaryPart) then WindUI:Notify({Title="Gagal", Content="Player '" .. friendName .. "' tidak ditemukan."}); return end
+    pcall(function() friendPlayer.Character:SetPrimaryPartCFrame(myChar.PrimaryPart.CFrame); WindUI:Notify({Title="Berhasil", Content=friendName .. " telah dipindahkan."}) end)
+end })
+
+TabAdvanced:Paragraph({ Title = "Bypass Anti-Cheat", Desc = "Sistem bypass ini akan memodifikasi fungsi inti game." })
+TabAdvanced:Button({
+    Title = "Activate Anti-Cheat Bypass", Desc = "Mengaktifkan sistem anti-kick dan spoofing yang aman.",
+    Callback = function()
+        local success, err = pcall(function()
+            local mt = getrawmetatable(game); local oldIndex = mt.__index; setreadonly(mt, false)
+            mt.__index = newcclosure(function(self, key)
+                if typeof(self) == "Instance" and self.ClassName == "Humanoid" and key == "PlatformStand" then return false end
+                if typeof(self) == "Instance" and self.ClassName == "HumanoidRootPart" and (key == "AssemblyLinearVelocity" or key == "Velocity") then return Vector3.new(0, -50, 0) end
+                return oldIndex(self, key)
+            end)
+            setreadonly(mt, true)
+        end)
+        if success then WindUI:Notify({ Title = "Bypass Diaktifkan", Content = "Sistem bypass aman berhasil diaktifkan.", Icon = "shield-check" })
+        else WindUI:Notify({ Title = "Bypass Gagal", Content = "Gagal mengaktifkan bypass.", Icon = "shield-x" }); warn("Bypass Gagal: ", err) end
+    end
+})
+
+pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", { Title = "Memuat Skrip...", Text = "90% - Finalisasi...", Duration = 2 }) end)
+
+-- INISIALISASI
+refreshStorageUI()
+
+local endTime = tick()
+local duration = string.format("%.3f", endTime - startTime)
+pcall(function() 
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Selesai!", Text = "100% - Skrip berhasil dimuat dalam " .. duration .. " detik.", Duration = 8
+    })
+end)
