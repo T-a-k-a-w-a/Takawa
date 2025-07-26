@@ -41,7 +41,7 @@ local Window = Rayfield:CreateWindow({
     Name = "Abyss Miner Menu",
     LoadingTitle = "Memuat Abyss Miner Menu...",
     LoadingSubtitle = "oleh Partner Coding",
-    Theme = "Ocean",
+    Theme = "Default",
     ToggleUIKeybind = Enum.KeyCode.RightShift,
     ConfigurationSaving = { Enabled = false }
 })
