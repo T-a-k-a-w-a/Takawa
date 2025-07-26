@@ -29,11 +29,16 @@ local ghostCharacter, lastGhostPosition = nil, nil
 local isFlyingUp, isFlyingDown = false, false
 local originalStreamingEnabled = workspace.StreamingEnabled
 
+-- !-- PERBAIKAN: Ukuran UI sekarang dinamis menyesuaikan layar --!
+local screenSize = workspace.CurrentCamera.ViewportSize
+local windowWidth = math.min(screenSize.X * 0.9, 868)
+local windowHeight = math.min(screenSize.Y * 0.8, 650)
+
 -- Buat Jendela Utama
 local Window = MacLib:Window({
     Title = "Abyss Miner Menu",
     Subtitle = "oleh Partner Coding",
-    Size = UDim2.fromOffset(868, 650),
+    Size = UDim2.fromOffset(windowWidth, windowHeight),
     DragStyle = 2, -- Ideal untuk Mobile
     Keybind = Enum.KeyCode.RightShift,
     AcrylicBlur = true
@@ -198,11 +203,3 @@ SectionTeleport:Toggle({ Name = "Tempel di Kepala Teman", Default = false, Callb
     if state then if attachWeld then attachWeld:Destroy() end; attachWeld = Instance.new("WeldConstraint"); attachWeld.Part0 = myChar.HumanoidRootPart; attachWeld.Part1 = friendPlayer.Character.Head; attachWeld.Parent = myChar.HumanoidRootPart
     else if attachWeld then attachWeld:Destroy(); attachWeld = nil; myChar:SetPrimaryPartCFrame(friendPlayer.Character:GetPrimaryPartCFrame() * CFrame.new(5, 0, 0)) end end
 end})
-
-local endTime = tick()
-local duration = string.format("%.3f", endTime - startTime)
-pcall(function() 
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Selesai!", Text = "100% - Skrip berhasil dimuat dalam " .. duration .. " detik.", Duration = 8
-    })
-end)
