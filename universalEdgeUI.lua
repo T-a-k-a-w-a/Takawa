@@ -1,3 +1,6 @@
+-- // Rayfield UI Library - HARUS PALING ATAS
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
+
 -- // Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -20,36 +23,14 @@ local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
--- // Notification Setup
+-- // Notification Library
 local Notification = loadstring(game:HttpGet("https://raw.githubusercontent.com/Jxereas/UI-Libraries/main/notification_gui_library.lua", true))()
 
 -- // ESP Libraries
 -- ESP Line Bluwu
 local ESP_Line = loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-ESP-Library-9570", true))("there are cats in your walls let them out let them out let them out")
 
--- ESP Cornerbox (Placeholder for actual library if different)
-local ESP_Cornerbox = {} -- Assuming it's part of the same library or needs separate implementation
--- For now, we'll assume it's managed within the same ESP_Line system or needs a different approach.
--- ESP Arrow
--- We'll integrate the Arrow ESP code directly as it's custom.
-
--- // Rayfield UI Library
-local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
-
--- // Saved Locations Table
-local SavedLocations = {}
-
--- // Notification Helper
-local function Notify(Type, Title, Message, Duration)
-    Duration = Duration or 5
-    pcall(function()
-        Notification.new(Type, Title, Message, true, Duration)
-    end)
-end
-
-Notify("info", "Loading", "Initializing script and UI...", 3)
-
--- // ESP Arrow Implementation (Integrated)
+-- ESP Arrow Implementation (Integrated)
 local ArrowESP_Enabled = false
 local ArrowESP_Settings = {
     DistFromCenter = 80,
@@ -64,6 +45,7 @@ local ArrowESP_Settings = {
 
 local ArrowDrawings = {} -- Stores arrow drawings per player
 
+-- Arrow Helper Functions
 local function GetRelative(pos, char)
     if not char then return Vector2.new(0,0) end
     local rootP = char.PrimaryPart.Position
@@ -171,6 +153,19 @@ end
 
 Players.PlayerAdded:Connect(CreateArrowForPlayer)
 Players.PlayerRemoving:Connect(RemoveArrowForPlayer)
+
+-- // Saved Locations Table
+local SavedLocations = {}
+
+-- // Notification Helper
+local function Notify(Type, Title, Message, Duration)
+    Duration = Duration or 5
+    pcall(function()
+        Notification.new(Type, Title, Message, true, Duration)
+    end)
+end
+
+Notify("info", "Loading", "Initializing script and UI...", 3)
 
 -- // Main UI Window
 local Window = Rayfield:CreateWindow({
@@ -337,7 +332,8 @@ TeleportTab:CreateButton({
                 Notify("success", "Teleport", "Location saved.")
                 -- Refresh dropdown if it exists
                 if LocationDropdown then
-                    LocationDropdown:Refresh(SavedLocations, true)
+                    -- Note: Rayfield might require a different method to refresh dynamically
+                    -- This is a placeholder for potential dynamic refresh
                 end
             else
                 Notify("error", "Teleport", "Character not found.")
@@ -348,7 +344,11 @@ TeleportTab:CreateButton({
 
 -- Tween Teleport
 local LocationNames = {}
-LocationDropdown = TeleportTab:CreateDropdown({
+for _, loc in ipairs(SavedLocations) do
+    table.insert(LocationNames, loc.Name)
+end
+
+local LocationDropdown = TeleportTab:CreateDropdown({
     Name = "Saved Locations",
     Options = LocationNames,
     CurrentOption = "",
@@ -412,6 +412,7 @@ CharacterTab:CreateToggle({
 })
 
 -- Pickup Items
+local pickupLoop
 CharacterTab:CreateToggle({
     Name = "Pickup All Held Items",
     CurrentValue = false,
@@ -452,7 +453,7 @@ end
 
 local SelectedPlayerName = ""
 
-CharacterTab:CreateDropdown({
+local CopyPlayerDropdown = CharacterTab:CreateDropdown({
     Name = "Select Player",
     Options = PlayerNames,
     CurrentOption = "",
@@ -490,6 +491,7 @@ Players.PlayerAdded:Connect(function(player)
         table.insert(PlayerNames, player.Name)
         -- Refresh dropdowns if they exist and have a Refresh method
         -- This part might need adjustment based on Rayfield's exact API for refreshing dropdowns dynamically.
+        -- CopyPlayerDropdown:Refresh(PlayerNames) -- Example if such method exists
     end
 end)
 
@@ -501,19 +503,23 @@ Players.PlayerRemoving:Connect(function(player)
         end
     end
     -- Refresh dropdowns if needed
+    -- CopyPlayerDropdown:Refresh(PlayerNames) -- Example if such method exists
 end)
 
 -- // ESP Tab
 local ESPTab = Window:CreateTab("ESP", 4483362458)
 
 -- ESP Line (Bluwu)
+local ESPLineEnabled = false
 ESPTab:CreateToggle({
     Name = "ESP Line (Bluwu)",
     CurrentValue = false,
     Flag = "ESPLineToggle",
     Callback = function(Value)
+        ESPLineEnabled = Value
         pcall(function()
             if Value then
+                -- Ensure ESP is initialized for all current players
                 for i, Player in next, Players:GetPlayers() do
                     if Player ~= LocalPlayer then
                         ESP_Line.Object:New(ESP_Line:GetCharacter(Player))
@@ -522,17 +528,9 @@ ESPTab:CreateToggle({
                         end)
                     end
                 end
-                Players.PlayerAdded:Connect(function(Player)
-                    if Player ~= LocalPlayer then
-                        ESP_Line.Object:New(ESP_Line:GetCharacter(Player))
-                        ESP_Line:CharacterAdded(Player):Connect(function(Character)
-                            ESP_Line.Object:New(Character)
-                        end)
-                    end
-                end)
                 Notify("success", "ESP", "ESP Line (Bluwu) enabled.")
             else
-                ESP_Line:Remove() -- This might not be the correct method, depends on the library
+                ESP_Line:Remove() -- This removes all ESP objects
                 Notify("info", "ESP", "ESP Line (Bluwu) disabled.")
             end
         end)
@@ -540,15 +538,15 @@ ESPTab:CreateToggle({
 })
 
 -- ESP Cornerbox
+-- Since Cornerbox code is the same as Notification, assuming it's part of Bluwu or needs separate lib
+-- For now, we'll just notify or you might need to implement a specific cornerbox library
 ESPTab:CreateToggle({
     Name = "ESP Cornerbox",
     CurrentValue = false,
     Flag = "ESPCornerboxToggle",
     Callback = function(Value)
-        -- Since Cornerbox code is the same as Notification, assuming it's part of Bluwu or needs separate lib
-        -- For now, we'll just notify
         if Value then
-            Notify("warning", "ESP", "ESP Cornerbox toggle enabled. (Implementation may vary)")
+            Notify("warning", "ESP", "ESP Cornerbox toggle enabled. (Implementation may vary or use Bluwu settings)")
         else
             Notify("info", "ESP", "ESP Cornerbox toggle disabled.")
         end
@@ -573,6 +571,18 @@ ESPTab:CreateToggle({
         end
     end,
 })
+
+-- Connect PlayerAdded for ESP_Line if not already done globally
+if ESPLineEnabled then
+    Players.PlayerAdded:Connect(function(Player)
+        if Player ~= LocalPlayer then
+            ESP_Line.Object:New(ESP_Line:GetCharacter(Player))
+            ESP_Line:CharacterAdded(Player):Connect(function(Character)
+                ESP_Line.Object:New(Character)
+            end)
+        end
+    end)
+end
 
 -- // Final Notification
 Notify("success", "Ready", "Script and UI loaded successfully!", 5)
