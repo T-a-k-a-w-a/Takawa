@@ -1,5 +1,9 @@
 debugX = true
 
+local Players       = game:GetService("Players")
+local LocalPlayer   = Players.LocalPlayer
+local RunService    = game:GetService("RunService")
+
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
@@ -11,96 +15,175 @@ local Window = Rayfield:CreateWindow({
    DisableRayfieldPrompts = false,
    DisableBuildWarnings = false,
    ConfigurationSaving = {
-      Enabled = true,
+      Enabled    = true,
       FolderName = nil,
-      FileName = "Big Hub"
+      FileName   = "Big Hub"
    },
    Discord = {
-      Enabled = false,
-      Invite = "noinvitelink",
-      RememberJoins = true
+      Enabled        = false,
+      Invite         = "noinvitelink",
+      RememberJoins  = true
    },
    KeySystem = false,
    KeySettings = {
-      Title = "Untitled",
-      Subtitle = "Key System",
-      Note = "No method of obtaining the key is provided",
-      FileName = "Key",
-      SaveKey = true,
-      GrabKeyFromSite = false,
-      Key = {"Hello"}
+      Title            = "Untitled",
+      Subtitle         = "Key System",
+      Note             = "No method of obtaining the key is provided",
+      FileName         = "Key",
+      SaveKey          = true,
+      GrabKeyFromSite  = false,
+      Key              = {"Hello"}
    }
 })
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
+-- keep track of current walk/jump settings
+local settings = {
+   WalkSpeed  = 16,
+   JumpPower  = 50,
+}
 
--- WalkSpeed Loop Logic
-local walkLoopEnabled = false
-local function WalkSpeedLoop()
-   while walkLoopEnabled do
-      if Humanoid then Humanoid.WalkSpeed = 75 end
-      wait(0.2)
+-- updates humanoid properties whenever character/spawn changes
+local function applyMovementSettings(humanoid)
+   humanoid.WalkSpeed = settings.WalkSpeed
+   humanoid.JumpPower = settings.JumpPower
+end
+
+local function onCharacterAdded(char)
+   local humanoid = char:WaitForChild("Humanoid", 5)
+   if humanoid then
+      applyMovementSettings(humanoid)
+      -- ensure settings persist if something resets them
+      RunService.Heartbeat:Connect(function()
+         if humanoid and humanoid.Parent then
+            humanoid.WalkSpeed = settings.WalkSpeed
+            humanoid.JumpPower = settings.JumpPower
+         end
+      end)
    end
 end
 
--- JumpPower Loop Logic
-local jumpLoopEnabled = false
-local function JumpPowerLoop()
-   while jumpLoopEnabled do
-      if Humanoid then Humanoid.JumpPower = 100 end
-      wait(0.2)
-   end
+-- bind character added for existing & future spawns
+if LocalPlayer.Character then
+   onCharacterAdded(LocalPlayer.Character)
 end
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
 
--- Copy Character Logic
-local function CopyCharacter(name)
-   local target = Players:FindFirstChild(name)
-   if target and target.Character then
-      local clone = target.Character:Clone()
-      clone.Parent = workspace
-      clone:MoveTo(Character:GetPrimaryPartCFrame().Position + Vector3.new(6, 0, 0))
-   end
-end
+-- ---------------------------------------------------
+-- MOVEMENT CONTROLS SECTION
+-- ---------------------------------------------------
+local tabMovement = Window:CreateTab("Movement Controls", 4483362458)
+local secMove     = tabMovement:CreateSection("Walk & Jump Settings")
 
--- UI Setup
-local Tab = Window:CreateTab("Tab Example", 4483362458)
-local Section = Tab:CreateSection("Section Example")
-
--- Toggle WalkSpeed
-Tab:CreateToggle({
-   Name = "Loop WalkSpeed 75",
-   CurrentValue = false,
-   Callback = function(Value)
-      walkLoopEnabled = Value
-      if Value then
-         coroutine.wrap(WalkSpeedLoop)()
-      end
+secMove:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {16, 300},
+   Increment = 1,
+   Suffix = "",
+   CurrentValue = settings.WalkSpeed,
+   Flag = "WalkSpeedSlider",
+   Callback = function(value)
+      settings.WalkSpeed = value
    end,
 })
 
--- Toggle JumpPower
-Tab:CreateToggle({
-   Name = "Loop JumpPower 100",
-   CurrentValue = false,
-   Callback = function(Value)
-      jumpLoopEnabled = Value
-      if Value then
-         coroutine.wrap(JumpPowerLoop)()
-      end
+secMove:CreateSlider({
+   Name = "JumpPower",
+   Range = {50, 200},
+   Increment = 1,
+   Suffix = "",
+   CurrentValue = settings.JumpPower,
+   Flag = "JumpPowerSlider",
+   Callback = function(value)
+      settings.JumpPower = value
    end,
 })
 
--- Copy Character Input
-Tab:CreateInput({
-   Name = "Copy Character",
-   PlaceholderText = "Nama Pemain",
+-- ---------------------------------------------------
+-- CHARACTER COPIER SECTION
+-- ---------------------------------------------------
+local tabCopy = Window:CreateTab("Character Copier", 4483362458)
+local secCopy = tabCopy:CreateSection("Clone Avatars")
+
+-- dropdown to pick from players in your server
+local playerDropdown
+local function refreshPlayerList()
+   local opts = {}
+   for _, plr in ipairs(Players:GetPlayers()) do
+      if plr ~= LocalPlayer then
+         table.insert(opts, plr.Name)
+      end
+   end
+   playerDropdown:Refresh(opts)
+end
+
+playerDropdown = secCopy:CreateDropdown({
+   Name = "Select Server Player",
+   Options = {},
+   CurrentOption = "",
+   Multi = false,
+   Flag = "PlayerDropdown",
+   Callback = function(name)
+      cloneAvatar(name)
+   end,
+})
+
+-- button to refresh the dropdown list
+secCopy:CreateButton({
+   Name = "Refresh Player List",
+   Callback = refreshPlayerList,
+})
+
+-- textbox to clone any Roblox username (in or out of server)
+secCopy:CreateInput({
+   Name = "Username to Copy",
+   PlaceholderText = "Type exact Roblox username",
    RemoveTextAfterFocusLost = true,
-   Callback = function(Text)
-      CopyCharacter(Text)
+   Callback = function(txt)
+      cloneAvatar(txt)
    end,
 })
 
+-- cloneAvatar implementation using GetCharacterAppearanceAsync
+function cloneAvatar(username)
+   coroutine.wrap(function()
+      local success, userId = pcall(function()
+         return Players:GetUserIdFromNameAsync(username)
+      end)
+      if not success then
+         warn("Unable to get userId for '" .. username .. "'")
+         return
+      end
+
+      -- fetch a fresh character model from Roblox API
+      local ok, model = pcall(function()
+         return Players:GetCharacterAppearanceAsync(userId)
+      end)
+      if not ok or not model then
+         warn("Failed to load avatar for userId " .. tostring(userId))
+         return
+      end
+
+      -- position clone next to your character
+      model.Name   = username .. "_Clone"
+      model.Parent = workspace
+
+      local rootPart = model:FindFirstChild("HumanoidRootPart") 
+                      or model.PrimaryPart
+      local myRoot   = LocalPlayer.Character and
+                       LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                       or workspace
+
+      if rootPart and myRoot then
+         model:SetPrimaryPartCFrame(
+            CFrame.new(
+               myRoot.Position + Vector3.new(8, 0, 0),
+               myRoot.Position
+            )
+         )
+      end
+   end)()
+end
+
+-- initialize
+refreshPlayerList()
 Rayfield:LoadConfiguration()
