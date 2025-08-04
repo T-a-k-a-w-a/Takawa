@@ -1,189 +1,111 @@
-debugX = true
-
 local Players       = game:GetService("Players")
 local LocalPlayer   = Players.LocalPlayer
 local RunService    = game:GetService("RunService")
 
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- Load Edge UI Window
+local window = loadstring(game:HttpGet("https://raw.githubusercontent.com/deadmopose/Edge-ui-library/main/script.lua"))()
+local tab    = window.new_tab("Movement & Avatar")
 
-local Window = Rayfield:CreateWindow({
-   Name = "Rayfield Example Window",
-   Icon = 0,
-   LoadingTitle = "Rayfield Interface Suite",
-   LoadingSubtitle = "by Sirius",
-   Theme = "Default",
-   DisableRayfieldPrompts = false,
-   DisableBuildWarnings = false,
-   ConfigurationSaving = {
-      Enabled    = true,
-      FolderName = nil,
-      FileName   = "Big Hub"
-   },
-   Discord = {
-      Enabled        = false,
-      Invite         = "noinvitelink",
-      RememberJoins  = true
-   },
-   KeySystem = false,
-   KeySettings = {
-      Title            = "Untitled",
-      Subtitle         = "Key System",
-      Note             = "No method of obtaining the key is provided",
-      FileName         = "Key",
-      SaveKey          = true,
-      GrabKeyFromSite  = false,
-      Key              = {"Hello"}
-   }
-})
+-- Section for Movement Sliders
+local secMovement = tab.new_section("Movement Controls")
 
--- keep track of current walk/jump settings
 local settings = {
-   WalkSpeed  = 16,
-   JumpPower  = 50,
+    WalkSpeed = 16,
+    JumpPower = 50,
 }
 
--- updates humanoid properties whenever character/spawn changes
-local function applyMovementSettings(humanoid)
-   humanoid.WalkSpeed = settings.WalkSpeed
-   humanoid.JumpPower = settings.JumpPower
+secMovement.new_slider("WalkSpeed", 16, 300, function(value)
+    settings.WalkSpeed = value
+end)
+
+secMovement.new_slider("JumpPower", 50, 200, function(value)
+    settings.JumpPower = value
+end)
+
+-- Apply settings continuously
+local function applyMovement()
+    RunService.Heartbeat:Connect(function()
+        local char = LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = settings.WalkSpeed
+                humanoid.JumpPower = settings.JumpPower
+            end
+        end
+    end)
 end
 
-local function onCharacterAdded(char)
-   local humanoid = char:WaitForChild("Humanoid", 5)
-   if humanoid then
-      applyMovementSettings(humanoid)
-      -- ensure settings persist if something resets them
-      RunService.Heartbeat:Connect(function()
-         if humanoid and humanoid.Parent then
-            humanoid.WalkSpeed = settings.WalkSpeed
-            humanoid.JumpPower = settings.JumpPower
-         end
-      end)
-   end
-end
-
--- bind character added for existing & future spawns
 if LocalPlayer.Character then
-   onCharacterAdded(LocalPlayer.Character)
+    applyMovement()
 end
-LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+LocalPlayer.CharacterAdded:Connect(applyMovement)
 
--- ---------------------------------------------------
--- MOVEMENT CONTROLS SECTION
--- ---------------------------------------------------
-local tabMovement = Window:CreateTab("Movement Controls", 4483362458)
-local secMove     = tabMovement:CreateSection("Walk & Jump Settings")
+-- Section for Cloning Characters
+local secClone = tab.new_section("Clone Character")
 
-secMove:CreateSlider({
-   Name = "WalkSpeed",
-   Range = {16, 300},
-   Increment = 1,
-   Suffix = "",
-   CurrentValue = settings.WalkSpeed,
-   Flag = "WalkSpeedSlider",
-   Callback = function(value)
-      settings.WalkSpeed = value
-   end,
-})
+-- Dropdown player list
+local currentList = {}
+local dropdown
 
-secMove:CreateSlider({
-   Name = "JumpPower",
-   Range = {50, 200},
-   Increment = 1,
-   Suffix = "",
-   CurrentValue = settings.JumpPower,
-   Flag = "JumpPowerSlider",
-   Callback = function(value)
-      settings.JumpPower = value
-   end,
-})
-
--- ---------------------------------------------------
--- CHARACTER COPIER SECTION
--- ---------------------------------------------------
-local tabCopy = Window:CreateTab("Character Copier", 4483362458)
-local secCopy = tabCopy:CreateSection("Clone Avatars")
-
--- dropdown to pick from players in your server
-local playerDropdown
-local function refreshPlayerList()
-   local opts = {}
-   for _, plr in ipairs(Players:GetPlayers()) do
-      if plr ~= LocalPlayer then
-         table.insert(opts, plr.Name)
-      end
-   end
-   playerDropdown:Refresh(opts)
+local function refreshDropdown()
+    currentList = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            table.insert(currentList, plr.Name)
+        end
+    end
+    dropdown:Refresh(currentList)
 end
 
-playerDropdown = secCopy:CreateDropdown({
-   Name = "Select Server Player",
-   Options = {},
-   CurrentOption = "",
-   Multi = false,
-   Flag = "PlayerDropdown",
-   Callback = function(name)
-      cloneAvatar(name)
-   end,
-})
+dropdown = secClone.new_dropdown("Clone From Server Player", currentList, function(name)
+    cloneAvatar(name)
+end)
 
--- button to refresh the dropdown list
-secCopy:CreateButton({
-   Name = "Refresh Player List",
-   Callback = refreshPlayerList,
-})
+-- Button to refresh player list
+secClone.new_button("Refresh Player List", function()
+    refreshDropdown()
+end)
 
--- textbox to clone any Roblox username (in or out of server)
-secCopy:CreateInput({
-   Name = "Username to Copy",
-   PlaceholderText = "Type exact Roblox username",
-   RemoveTextAfterFocusLost = true,
-   Callback = function(txt)
-      cloneAvatar(txt)
-   end,
-})
+-- Input to clone from any Roblox username
+secClone.new_text_box("Clone From Username", function(username)
+    cloneAvatar(username)
+end)
 
--- cloneAvatar implementation using GetCharacterAppearanceAsync
+-- Clone implementation
 function cloneAvatar(username)
-   coroutine.wrap(function()
-      local success, userId = pcall(function()
-         return Players:GetUserIdFromNameAsync(username)
-      end)
-      if not success then
-         warn("Unable to get userId for '" .. username .. "'")
-         return
-      end
+    coroutine.wrap(function()
+        local success, userId = pcall(function()
+            return Players:GetUserIdFromNameAsync(username)
+        end)
 
-      -- fetch a fresh character model from Roblox API
-      local ok, model = pcall(function()
-         return Players:GetCharacterAppearanceAsync(userId)
-      end)
-      if not ok or not model then
-         warn("Failed to load avatar for userId " .. tostring(userId))
-         return
-      end
+        if not success then
+            warn("Gagal mengambil userId untuk: " .. username)
+            return
+        end
 
-      -- position clone next to your character
-      model.Name   = username .. "_Clone"
-      model.Parent = workspace
+        local ok, avatarModel = pcall(function()
+            return Players:GetCharacterAppearanceAsync(userId)
+        end)
 
-      local rootPart = model:FindFirstChild("HumanoidRootPart") 
-                      or model.PrimaryPart
-      local myRoot   = LocalPlayer.Character and
-                       LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                       or workspace
+        if not ok or not avatarModel then
+            warn("Gagal memuat karakter untuk userId: " .. tostring(userId))
+            return
+        end
 
-      if rootPart and myRoot then
-         model:SetPrimaryPartCFrame(
-            CFrame.new(
-               myRoot.Position + Vector3.new(8, 0, 0),
-               myRoot.Position
+        avatarModel.Name = username .. "_Clone"
+        avatarModel.Parent = workspace
+
+        local root = avatarModel:FindFirstChild("HumanoidRootPart") or avatarModel.PrimaryPart
+        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+
+        if root and myRoot then
+            avatarModel:SetPrimaryPartCFrame(
+                CFrame.new(myRoot.Position + Vector3.new(8, 0, 0), myRoot.Position)
             )
-         )
-      end
-   end)()
+        end
+    end)()
 end
 
--- initialize
-refreshPlayerList()
-Rayfield:LoadConfiguration()
+-- Inisialisasi dropdown awal
+refreshDropdown()
